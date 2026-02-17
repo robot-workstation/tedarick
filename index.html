@@ -9,22 +9,23 @@
     body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b0d12;color:#eaeef7}
     header{padding:12px 14px;border-bottom:1px solid #1f2430;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .pill{font-size:12px;padding:4px 8px;border:1px solid #2a3140;border-radius:999px;color:#cbd5e1}
-    main{display:grid;grid-template-columns:420px 1fr;gap:0;min-height:calc(100vh - 54px)}
-    aside{border-right:1px solid #1f2430;padding:14px;min-height:0}
-    section{padding:14px;min-height:0}
+    main{display:grid;grid-template-columns:430px 1fr;min-height:calc(100vh - 54px)}
+    aside{border-right:1px solid #1f2430;padding:14px;min-height:0;overflow:auto}
+    section{padding:14px;min-height:0;overflow:hidden}
     h2{margin:0 0 10px 0;font-size:14px;color:#cbd5e1}
     .card{border:1px solid #1f2430;border-radius:14px;background:#0f1320;padding:12px;margin-bottom:12px}
     label{display:block;font-size:12px;color:#9aa7bd;margin-bottom:6px}
     input[type="file"]{width:100%}
+    input[type="text"]{width:100%;background:#0b0d12;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;padding:8px}
     textarea{width:100%;min-height:120px;resize:vertical;background:#0b0d12;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;padding:10px}
-    button{background:#111827;color:#eaeef7;border:1px solid #2a3140;padding:9px 10px;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px}
+    button{background:#111827;color:#eaeef7;border:1px solid #2a3140;padding:9px 10px;border-radius:10px;cursor:pointer;font-weight:800;font-size:13px}
     button:disabled{opacity:.6;cursor:not-allowed}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     .status{white-space:pre-wrap;font-size:12px;color:#9aa7bd;margin-top:8px}
     .bar{height:10px;border-radius:999px;background:#0b0d12;border:1px solid #1f2430;overflow:hidden}
     .bar > div{height:100%;background:#2a3140;width:0%}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-    .tabbtn{padding:7px 9px;border-radius:10px;border:1px solid #2a3140;background:#0f1320;font-weight:800}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+    .tabbtn{padding:7px 9px;border-radius:10px;border:1px solid #2a3140;background:#0f1320;font-weight:900}
     .tabbtn.active{border-color:#3a465f}
     .tableWrap{border-top:1px solid #1f2430;overflow:auto;max-height:calc(100vh - 170px)}
     table{width:100%;border-collapse:collapse}
@@ -34,38 +35,47 @@
     a{color:#93c5fd;text-decoration:none}
     a:hover{text-decoration:underline}
     .small{font-size:12px;color:#9aa7bd}
-    .warn{color:#fcd34d}
     .ok{color:#86efac}
     .bad{color:#fca5a5}
+    .warn{color:#fcd34d}
+    .muted{color:#9aa7bd}
+    .chip{display:inline-block;font-size:11px;padding:2px 6px;border:1px solid #2a3140;border-radius:999px;color:#cbd5e1;margin-left:6px}
     .inp{width:100%;background:#0b0d12;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;padding:8px}
-    @media (max-width: 980px){ main{grid-template-columns:1fr} aside{border-right:0;border-bottom:1px solid #1f2430} th{position:static} .tableWrap{max-height:50vh}}
+    .hint{font-size:12px;color:#9aa7bd;margin-top:6px}
+    @media (max-width: 980px){
+      main{grid-template-columns:1fr}
+      aside{border-right:0;border-bottom:1px solid #1f2430}
+      th{position:static}
+      .tableWrap{max-height:55vh}
+    }
   </style>
 </head>
 <body>
 <header>
   <strong>Tedarik Stok Karar Robotu</strong>
-  <span class="pill" id="brandPill">Compel markaları: …</span>
-  <span class="pill" id="scopePill">Kapsam: …</span>
+  <span class="pill" id="pillBrands">Compel markaları: …</span>
+  <span class="pill" id="pillScope">Kapsam: …</span>
+  <span class="pill" id="pillIgnored">Ignore: …</span>
 </header>
 
 <main>
   <aside>
     <div class="card">
-      <h2>1) Dosyalar</h2>
+      <h2>1) Girdiler</h2>
 
-      <label>products.csv (Sescibaba)</label>
-      <input id="fProducts" type="file" accept=".csv,text/csv" />
+      <label>products.csv (zorunlu)</label>
+      <input id="fProducts" type="file" accept=".csv,.txt,text/csv,text/plain" />
 
       <div style="height:10px"></div>
 
-      <label>aide.xlsx (Depo) (opsiyonel)</label>
+      <label>aide.xlsx (opsiyonel)</label>
       <input id="fAide" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
 
       <div style="height:10px"></div>
 
-      <label>Depo verisi yapıştır (opsiyonel) — stok ekranındaki tabloyu kopyalayıp buraya yapıştır</label>
-      <textarea id="taDepot" placeholder="Tabloyu kopyala → buraya yapıştır (başlık satırı varsa daha iyi)."></textarea>
-      <div class="small">Not: aide.xlsx yüklersen bu alanı boş bırakabilirsin.</div>
+      <label>Depo verisi yapıştır (opsiyonel) — stok ekranındaki tabloyu kopyala → buraya yapıştır</label>
+      <textarea id="taDepot" placeholder="Tabloyu kopyala → buraya yapıştır (TSV/sekmeli en iyi)."></textarea>
+      <div class="hint">Not: aide.xlsx yüklersen yapıştırmana gerek yok.</div>
 
       <div style="height:10px"></div>
 
@@ -77,10 +87,25 @@
       <label>mapping.json (opsiyonel)</label>
       <input id="fMapping" type="file" accept=".json,application/json" />
 
+      <div style="height:10px"></div>
+
+      <label>Sescibaba site base URL (SEO Link “/...” ise tamamlamak için)</label>
+      <input id="siteBase" type="text" value="https://sescibaba.com" />
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <label style="display:flex;gap:8px;align-items:center;margin:0">
+          <input id="chkScanAll" type="checkbox" style="width:18px;height:18px" />
+          <span class="small">Marka bulunamazsa tüm Compel markalarını tara (yavaş)</span>
+        </label>
+      </div>
+
       <div style="height:12px"></div>
 
       <div class="row">
         <button id="btnGenerate" disabled>Generate</button>
+        <button id="btnRecalc" disabled>Recalculate</button>
         <button id="btnExportMapping" disabled>mapping.json indir</button>
         <button id="btnClearMapping">mapping sıfırla</button>
       </div>
@@ -91,11 +116,12 @@
     </div>
 
     <div class="card">
-      <h2>Notlar</h2>
+      <h2>Kurallar</h2>
       <div class="small">
-        • Depo↔Sescibaba eşleşmesi: <b>Tedarikçi Ürün Kodu</b> ↔ <b>Stok Kodu</b><br/>
-        • Compel↔Sescibaba eşleşmesi: <b>Barkod (EAN)</b> ↔ <b>ean</b><br/>
-        • Marka filtresi: products.csv’de Marka yoksa, ürün adından marka tahmini yapılır (tam tutmayabilir).<br/>
+        • Depo↔Sescibaba: <b>Tedarikçi Ürün Kodu</b> ↔ <b>Stok Kodu</b><br/>
+        • Compel↔Sescibaba: <b>Barkod (EAN)</b> ↔ <b>ean</b><br/>
+        • “Compel’de olmayan markalar” ignore edilir.<br/>
+        • CSV ayırıcı otomatik: TAB / ; / ,<br/>
       </div>
     </div>
   </aside>
@@ -103,10 +129,11 @@
   <section>
     <div class="tabs">
       <button class="tabbtn active" data-tab="close">Kapatılabilir (<span id="cntClose">0</span>)</button>
-      <button class="tabbtn" data-tab="keep">Açık kalsın/Aç (<span id="cntKeep">0</span>)</button>
+      <button class="tabbtn" data-tab="keep">Açık kalsın / Aç (<span id="cntKeep">0</span>)</button>
       <button class="tabbtn" data-tab="manual">Manuel (<span id="cntManual">0</span>)</button>
       <span style="flex:1"></span>
-      <button id="btnExportList" disabled>Listeyi CSV indir</button>
+      <button id="btnExportCSV" disabled>CSV indir</button>
+      <button id="btnExportTXT" disabled>TXT indir</button>
     </div>
 
     <div class="tableWrap">
@@ -118,70 +145,81 @@
   </section>
 </main>
 
-<!-- XLSX parser (SheetJS) -->
+<!-- XLSX parser -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
+(() => {
   // ✅ Worker URL
   const API_BASE = "https://tedarick.tvkapora.workers.dev";
-
-  const els = {
-    brandPill: document.getElementById('brandPill'),
-    scopePill: document.getElementById('scopePill'),
-    fProducts: document.getElementById('fProducts'),
-    fAide: document.getElementById('fAide'),
-    taDepot: document.getElementById('taDepot'),
-    fCompel: document.getElementById('fCompel'),
-    fMapping: document.getElementById('fMapping'),
-    btnGenerate: document.getElementById('btnGenerate'),
-    btnExportMapping: document.getElementById('btnExportMapping'),
-    btnClearMapping: document.getElementById('btnClearMapping'),
-    barFill: document.getElementById('barFill'),
-    status: document.getElementById('status'),
-    tabs: [...document.querySelectorAll('.tabbtn')],
-    thead: document.getElementById('thead'),
-    tbody: document.getElementById('tbody'),
-    btnExportList: document.getElementById('btnExportList'),
-    cntClose: document.getElementById('cntClose'),
-    cntKeep: document.getElementById('cntKeep'),
-    cntManual: document.getElementById('cntManual'),
-  };
-
   const LS_KEY = "stokbot_mapping_v1";
 
+  const els = {
+    pillBrands: document.getElementById("pillBrands"),
+    pillScope: document.getElementById("pillScope"),
+    pillIgnored: document.getElementById("pillIgnored"),
+    fProducts: document.getElementById("fProducts"),
+    fAide: document.getElementById("fAide"),
+    taDepot: document.getElementById("taDepot"),
+    fCompel: document.getElementById("fCompel"),
+    fMapping: document.getElementById("fMapping"),
+    siteBase: document.getElementById("siteBase"),
+    chkScanAll: document.getElementById("chkScanAll"),
+    btnGenerate: document.getElementById("btnGenerate"),
+    btnRecalc: document.getElementById("btnRecalc"),
+    btnExportMapping: document.getElementById("btnExportMapping"),
+    btnClearMapping: document.getElementById("btnClearMapping"),
+    barFill: document.getElementById("barFill"),
+    status: document.getElementById("status"),
+    tabs: [...document.querySelectorAll(".tabbtn")],
+    thead: document.getElementById("thead"),
+    tbody: document.getElementById("tbody"),
+    btnExportCSV: document.getElementById("btnExportCSV"),
+    btnExportTXT: document.getElementById("btnExportTXT"),
+    cntClose: document.getElementById("cntClose"),
+    cntKeep: document.getElementById("cntKeep"),
+    cntManual: document.getElementById("cntManual"),
+  };
+
   let BRANDS = [];
-  let brandNormList = []; // {id,name,slug,normName,normSlug,normWords}
+  let brandNormList = []; // allowlist normalized
   let mapping = loadMapping();
   let currentTab = "close";
   let lists = { close: [], keep: [], manual: [] };
 
+  // Cache for recalc without rescanning
+  let cache = {
+    sbRows: null,
+    depotMap: null,
+    compelMap: null,
+    meta: null, // counts
+    scanAllUsed: false,
+  };
+
   function setStatus(msg){ els.status.textContent = msg; }
   function setProgress(p){ els.barFill.style.width = Math.max(0, Math.min(100, p)) + "%"; }
+  function tick(){ return new Promise(r => setTimeout(r, 0)); }
 
   function trNorm(s){
     s = String(s ?? "").toLowerCase().trim();
     const map = { "ı":"i","İ":"i","ş":"s","Ş":"s","ğ":"g","Ğ":"g","ü":"u","Ü":"u","ö":"o","Ö":"o","ç":"c","Ç":"c","â":"a","î":"i","û":"u","ø":"o" };
     s = s.replace(/[ıİşŞğĞüÜöÖçÇâîûø]/g, ch => map[ch] ?? ch);
-    s = s.replace(/&/g," and ");
-    s = s.replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();
+    s = s.replace(/&/g, " and ");
+    s = s.replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
     return s;
   }
-
   function digitsOnly(s){ return String(s ?? "").replace(/\D+/g, ""); }
   function normCode(s){ return String(s ?? "").trim().toUpperCase().replace(/\s+/g, ""); }
-
-  function truthyActive(v){
-    const t = String(v ?? "").trim().toLowerCase();
-    return ["1","true","evet","yes","aktif","on"].includes(t);
-  }
-
   function toInt(v){
     const t = String(v ?? "").replace(",", ".").replace(/[^\d.-]/g,"").trim();
     const n = Number(t);
     if (!Number.isFinite(n)) return 0;
     return n < 0 ? 0 : Math.floor(n);
   }
-
+  function truthyActive(v){
+    const t = String(v ?? "").trim().toLowerCase();
+    return ["1","true","evet","yes","aktif","on"].includes(t);
+  }
   function parseCompelStockText(stockText){
     const t = String(stockText ?? "");
     if (/bilinmiyor/i.test(t)) return null;
@@ -193,35 +231,29 @@
   }
 
   function loadMapping(){
-    try {
+    try{
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return { version: 1, mapDepot: {}, mapCompel: {} };
       const j = JSON.parse(raw);
-      return {
-        version: 1,
-        mapDepot: j.mapDepot || {},
-        mapCompel: j.mapCompel || {},
-      };
+      return { version: 1, mapDepot: j.mapDepot || {}, mapCompel: j.mapCompel || {} };
     } catch {
       return { version: 1, mapDepot: {}, mapCompel: {} };
     }
   }
-
   function saveMapping(){
     localStorage.setItem(LS_KEY, JSON.stringify(mapping));
     els.btnExportMapping.disabled = false;
   }
-
   function resetMapping(){
     mapping = { version: 1, mapDepot: {}, mapCompel: {} };
     localStorage.removeItem(LS_KEY);
     els.btnExportMapping.disabled = true;
     setStatus("mapping sıfırlandı.");
-    // listeler varsa yeniden hesaplamak istersen sonraki adımda ekleriz
+    if (cache.sbRows) recalc();
   }
 
-  function downloadJson(obj, filename){
-    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json;charset=utf-8"});
+  function downloadBlob(content, type, filename){
+    const blob = new Blob([content], {type});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = filename;
@@ -230,68 +262,68 @@
     URL.revokeObjectURL(a.href);
     a.remove();
   }
-
+  function downloadJson(obj, filename){
+    downloadBlob(JSON.stringify(obj, null, 2), "application/json;charset=utf-8", filename);
+  }
   function downloadCsv(rows, filename){
     const esc = (s) => {
       const v = String(s ?? "");
       if (/[",\n]/.test(v)) return `"${v.replace(/"/g,'""')}"`;
       return v;
     };
-    if (!rows.length){
-      downloadText("","empty.csv");
-      return;
-    }
+    if (!rows.length){ downloadBlob("", "text/csv;charset=utf-8", filename); return; }
     const cols = Object.keys(rows[0]);
     const lines = [cols.join(","), ...rows.map(r => cols.map(c => esc(r[c])).join(","))];
-    const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(a.href);
-    a.remove();
+    downloadBlob(lines.join("\n"), "text/csv;charset=utf-8", filename);
+  }
+  function downloadTsv(rows, filename){
+    const header = Object.keys(rows[0] || {}).join("\t");
+    const lines = rows.map(r => Object.keys(r).map(k => String(r[k] ?? "")).join("\t"));
+    downloadBlob([header, ...lines].join("\n"), "text/plain;charset=utf-8", filename);
   }
 
-  function downloadText(text, filename){
-    const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(a.href);
-    a.remove();
+  // --- Robust delimited text parser (TAB / ; / , autodetect, quotes supported) ---
+  function detectDelimiter(firstLine){
+    const cTab = (firstLine.match(/\t/g)||[]).length;
+    const cSemi = (firstLine.match(/;/g)||[]).length;
+    const cComma = (firstLine.match(/,/g)||[]).length;
+    if (cTab >= cSemi && cTab >= cComma && cTab > 0) return "\t";
+    if (cSemi >= cComma && cSemi > 0) return ";";
+    return ",";
   }
+  function parseDelimitedText(text){
+    text = String(text ?? "");
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // BOM
+    const firstLine = (text.split(/\r?\n/)[0] || "");
+    const SEP = detectDelimiter(firstLine);
 
-  // Basit CSV parser (quotes destekli)
-  function parseCsvText(text){
     const rows = [];
     let i=0, field="", row=[], inQuotes=false;
+
     const pushField = ()=>{ row.push(field); field=""; };
     const pushRow = ()=>{ rows.push(row); row=[]; };
+
     while (i < text.length){
       const c = text[i];
       if (inQuotes){
         if (c === '"'){
           if (text[i+1] === '"'){ field += '"'; i+=2; continue; }
           inQuotes = false; i++; continue;
-        } else { field += c; i++; continue; }
+        }
+        field += c; i++; continue;
       } else {
         if (c === '"'){ inQuotes = true; i++; continue; }
-        if (c === ','){ pushField(); i++; continue; }
-        if (c === '\n'){ pushField(); pushRow(); i++; continue; }
-        if (c === '\r'){ i++; continue; }
+        if (c === SEP){ pushField(); i++; continue; }
+        if (c === "\n"){ pushField(); pushRow(); i++; continue; }
+        if (c === "\r"){ i++; continue; }
         field += c; i++; continue;
       }
     }
     pushField(); pushRow();
-    // boş trailing satır temizle
     return rows.filter(r => r.some(x => String(x ?? "").trim() !== ""));
   }
-
   function rowsToObjects(grid){
-    const headers = grid[0].map(h => String(h ?? "").trim());
+    const headers = (grid[0] || []).map(h => String(h ?? "").trim());
     const out = [];
     for (let r=1; r<grid.length; r++){
       const obj = {};
@@ -303,16 +335,10 @@
     return out;
   }
 
-  async function readFileText(file){
-    return await file.text();
-  }
+  async function readFileText(file){ return await file.text(); }
 
-  async function loadBrands(){
-    setStatus("Compel markaları yükleniyor…");
-    setProgress(5);
-    const res = await fetch(`${API_BASE}/api/brands`, { cache: "no-store" });
-    if (!res.ok) throw new Error("brands alınamadı: " + res.status);
-    BRANDS = await res.json();
+  // --- Brands / allowlist ---
+  function buildBrandNormList(){
     brandNormList = BRANDS.map(b => {
       const name = b.name || "";
       const slug = b.slug || "";
@@ -324,82 +350,67 @@
         normWords: trNorm(words),
       };
     }).sort((a,b)=> b.normName.length - a.normName.length);
-    els.brandPill.textContent = `Compel markaları: ${BRANDS.length}`;
-    setProgress(10);
-    setStatus("Hazır. products.csv seç.");
+  }
+
+  function resolveBrandToAllowlist(brandStr){
+    const bn = trNorm(brandStr);
+    if (!bn) return null;
+
+    // exact name match
+    let b = brandNormList.find(x => x.normName === bn);
+    if (b) return b;
+
+    // sometimes brand comes as slug-ish
+    b = brandNormList.find(x => x.normSlug === bn || x.normWords === bn);
+    if (b) return b;
+
+    // soft: remove spaces
+    const compact = bn.replace(/\s+/g,"");
+    b = brandNormList.find(x => x.normName.replace(/\s+/g,"") === compact);
+    if (b) return b;
+
+    return null;
   }
 
   function inferBrandFromTitle(title){
     const t = trNorm(title);
     if (!t) return "";
+    const pad = " " + t + " ";
     for (const b of brandNormList){
-      // kelime sınırı gibi davranması için boşlukla çevrele
-      const pad = " " + t + " ";
-      const key1 = " " + b.normName + " ";
-      const key2 = b.normWords ? (" " + b.normWords + " ") : "";
-      if (b.normName && pad.includes(key1)) return b.name;
-      if (key2 && pad.includes(key2)) return b.name;
-    }
-    // başta yakalama (bazı adlar birleşik gelebilir)
-    for (const b of brandNormList){
-      if (b.normName && t.startsWith(b.normName + " ")) return b.name;
-      if (b.normWords && t.startsWith(b.normWords + " ")) return b.name;
+      const k1 = b.normName ? (" " + b.normName + " ") : "";
+      const k2 = b.normWords ? (" " + b.normWords + " ") : "";
+      if (k1 && pad.includes(k1)) return b.name;
+      if (k2 && pad.includes(k2)) return b.name;
     }
     return "";
   }
 
+  // --- Keys and links ---
   function sbKeyOf(row){
-    const supplier = normCode(row["Tedarikçi Ürün Kodu"] ?? "");
-    const ean = digitsOnly(row["Barkod"] ?? "");
-    const title = String(row["Ürün Adı"] ?? "").trim();
+    const supplier = normCode(row["Tedarikçi Ürün Kodu"] ?? row["Tedarikci Urun Kodu"] ?? "");
+    const ean = digitsOnly(row["Barkod"] ?? row["BARKOD"] ?? "");
+    const title = String(row["Ürün Adı"] ?? row["Urun Adi"] ?? row["Ürün Adi"] ?? "").trim();
     if (supplier) return "SUP:" + supplier;
     if (ean) return "EAN:" + ean;
     return "NAME:" + trNorm(title);
   }
 
-  function pickBrandObj(brandName){
-    const bn = trNorm(brandName);
-    return brandNormList.find(b => b.normName === bn) || null;
+  function normalizeSeoLink(raw){
+    const s = String(raw ?? "").trim();
+    if (!s) return "";
+    if (/^https?:\/\//i.test(s)) return s;
+    const base = String(els.siteBase.value || "https://sescibaba.com").replace(/\/+$/,"");
+    if (s.startsWith("/")) return base + s;
+    return base + "/" + s;
   }
 
-  function allowlistHas(brandName){
-    const bn = trNorm(brandName);
-    return brandNormList.some(b => b.normName === bn);
-  }
-
-  async function parseDepotFromPaste(text){
-    const t = String(text ?? "").trim();
-    if (!t) return new Map();
-    // TSV / clipboard tablo
-    const lines = t.split(/\r?\n/).filter(x => x.trim() !== "");
-    const grid = lines.map(l => l.split("\t"));
-    // header bul
-    const hdr = grid[0].map(x => String(x ?? "").trim());
-    let idxCode = hdr.findIndex(h => trNorm(h) === trNorm("Stok Kodu") || trNorm(h).includes("stok kodu"));
-    let idxStock = hdr.findIndex(h => trNorm(h) === trNorm("Stok") || trNorm(h) === trNorm("Stok Adedi") || trNorm(h).includes("stok"));
-    // başlık yoksa varsayım: 3. sütun stok kodu, 5. stok (senin xlsx düzenin)
-    const startRow = (idxCode >= 0 && idxStock >= 0) ? 1 : 0;
-    if (startRow === 0){
-      idxCode = 2;
-      idxStock = 4;
-    }
-    const map = new Map();
-    for (let r=startRow; r<grid.length; r++){
-      const row = grid[r];
-      const code = normCode(row[idxCode] ?? "");
-      if (!code) continue;
-      const stock = toInt(row[idxStock] ?? 0);
-      map.set(code, (map.get(code) || 0) + stock);
-    }
-    return map;
-  }
-
+  // --- Depot parsing ---
   async function parseDepotFromXlsx(file){
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data, { type: "array" });
     const first = wb.SheetNames[0];
     const ws = wb.Sheets[first];
-    const json = XLSX.utils.sheet_to_json(ws, { defval: "" }); // header satırı otomatik
+    const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
     const map = new Map();
     for (const r of json){
       const code = normCode(r["Stok Kodu"] ?? r["StokKodu"] ?? "");
@@ -410,15 +421,57 @@
     return map;
   }
 
+  function splitLikelyTableLine(line){
+    if (line.includes("\t")) return line.split("\t");
+    // if copy from web produces multiple spaces
+    if (/\s{2,}/.test(line)) return line.trim().split(/\s{2,}/g);
+    // fallback comma/semicolon
+    const sep = detectDelimiter(line);
+    return line.split(sep);
+  }
+
+  async function parseDepotFromPaste(text){
+    const t = String(text ?? "").trim();
+    if (!t) return new Map();
+    const lines = t.split(/\r?\n/).filter(x => x.trim() !== "");
+    if (!lines.length) return new Map();
+
+    const first = lines[0];
+    const hdr = splitLikelyTableLine(first).map(x => String(x ?? "").trim());
+    const nh = hdr.map(h => trNorm(h));
+
+    const idxCode = nh.findIndex(h => h === trNorm("Stok Kodu") || h.includes(trNorm("stok kodu")));
+    // "Stok" sütunu çok genel olabilir; başlıktaysa kabul
+    const idxStock = nh.findIndex(h => h === trNorm("Stok") || h.includes(trNorm("stok")));
+
+    const hasHeader = (idxCode >= 0 && idxStock >= 0);
+
+    const map = new Map();
+    for (let i = hasHeader ? 1 : 0; i < lines.length; i++){
+      const cols = splitLikelyTableLine(lines[i]);
+      const code = normCode(cols[hasHeader ? idxCode : 2] ?? "");
+      if (!code) continue;
+      const stock = toInt(cols[hasHeader ? idxStock : 4] ?? 0);
+      map.set(code, (map.get(code) || 0) + stock);
+      if (i % 800 === 0) await tick();
+    }
+    return map;
+  }
+
+  // --- Compel parsing ---
   async function parseCompelFromTxt(file){
     const text = await readFileText(file);
     const lines = text.split(/\r?\n/).filter(x => x.trim() !== "");
     if (!lines.length) return new Map();
-    const hdr = lines[0].split("\t").map(h => String(h ?? "").trim());
-    const idxEan = hdr.findIndex(h => trNorm(h) === trNorm("EAN"));
-    const idxStock = hdr.findIndex(h => trNorm(h) === trNorm("Stok"));
-    const idxTitle = hdr.findIndex(h => trNorm(h).includes("urun adi"));
-    const idxBrand = hdr.findIndex(h => trNorm(h) === trNorm("Marka"));
+
+    const hdr = (lines[0] || "").split("\t").map(h => String(h ?? "").trim());
+    const nh = hdr.map(h => trNorm(h));
+
+    const idxEan = nh.findIndex(h => h === trNorm("EAN"));
+    const idxStock = nh.findIndex(h => h === trNorm("Stok") || h.includes(trNorm("stok")));
+    const idxTitle = nh.findIndex(h => h.includes(trNorm("urun adi")) || h.includes(trNorm("ürün adı")));
+    const idxBrand = nh.findIndex(h => h === trNorm("Marka"));
+
     const map = new Map();
     for (let i=1; i<lines.length; i++){
       const cols = lines[i].split("\t");
@@ -426,12 +479,12 @@
       if (ean.length !== 13) continue;
       const stock = toInt(cols[idxStock] ?? 0);
       map.set(ean, { stock, title: cols[idxTitle] ?? "", brand: cols[idxBrand] ?? "", url: "" });
+      if (i % 4000 === 0) await tick();
     }
     return map;
   }
 
   async function scanCompelFromWorker(brandsToScan){
-    // brandsToScan: array of brand objects expected by worker
     const res = await fetch(`${API_BASE}/api/scan`, {
       method: "POST",
       headers: {"content-type":"application/json"},
@@ -443,17 +496,17 @@
     }
     const reader = res.body?.getReader?.();
     if (!reader) throw new Error("Stream yok.");
+
     const decoder = new TextDecoder();
     let buf = "";
-
     const map = new Map(); // ean -> {stock,title,brand,url}
+
     let doneBrands = 0;
     const totalBrands = brandsToScan.length;
-    let currentBrand = "";
-    let currentPage = 0, currentPages = 1;
+    let currentBrand = "", currentPage = 0, currentPages = 1;
 
     while (true){
-      const { value, done } = await reader.read();
+      const {value, done} = await reader.read();
       if (done) break;
       buf += decoder.decode(value, {stream:true});
 
@@ -466,17 +519,17 @@
         const msg = JSON.parse(line);
 
         if (msg.type === "brandStart"){
-          currentBrand = msg.brand;
-          currentPage = msg.page;
+          currentBrand = msg.brand || "";
+          currentPage = msg.page || 1;
           currentPages = msg.pages || 1;
-          const p = 40 + Math.floor(50 * ((doneBrands + (currentPage-1)/currentPages) / Math.max(1,totalBrands)));
+          const p = 35 + Math.floor(55 * ((doneBrands + (currentPage-1)/currentPages) / Math.max(1,totalBrands)));
           setProgress(p);
           setStatus(`Compel taranıyor: ${currentBrand} (${currentPage}/${currentPages})`);
         } else if (msg.type === "page"){
-          currentBrand = msg.brand;
-          currentPage = msg.page;
+          currentBrand = msg.brand || "";
+          currentPage = msg.page || 1;
           currentPages = msg.pages || 1;
-          const p = 40 + Math.floor(50 * ((doneBrands + (currentPage-1)/currentPages) / Math.max(1,totalBrands)));
+          const p = 35 + Math.floor(55 * ((doneBrands + (currentPage-1)/currentPages) / Math.max(1,totalBrands)));
           setProgress(p);
           setStatus(`Compel taranıyor: ${currentBrand} (${currentPage}/${currentPages})`);
         } else if (msg.type === "product"){
@@ -484,7 +537,6 @@
           const ean = digitsOnly(p.ean || "");
           if (ean.length !== 13) continue;
           const stock = parseCompelStockText(p.stock);
-          // Aynı EAN gelirse: stok varsa güncelle, url/title boşsa doldur
           const prev = map.get(ean) || { stock: 0, title:"", brand:"", url:"" };
           map.set(ean, {
             stock: (stock === null ? prev.stock : stock),
@@ -500,19 +552,135 @@
           setStatus("Compel hata: " + msg.message);
         }
       }
-      // UI nefes
-      await new Promise(r => setTimeout(r, 0));
+      await tick();
     }
-
     setProgress(90);
     return map;
+  }
+
+  // --- Decision building ---
+  function buildDecisionLists(sbRows, depotMap, compelMap, scanAllUsed){
+    const close = [];
+    const keep = [];
+    const manual = [];
+
+    let inScope = 0;
+    let ignoredBrand = 0;
+    let unknownBrand = 0;
+    let matchedByEanNoBrand = 0;
+
+    for (let i=0; i<sbRows.length; i++){
+      const row = sbRows[i];
+
+      // tolerant column names
+      const title = String(row["Ürün Adı"] ?? row["Urun Adi"] ?? row["Ürün Adi"] ?? row["Urun Adı"] ?? "").trim();
+      const supplierCode = normCode(row["Tedarikçi Ürün Kodu"] ?? row["Tedarikci Urun Kodu"] ?? "");
+      const ean = digitsOnly(row["Barkod"] ?? row["BARKOD"] ?? "");
+      const active = ("Aktif" in row) ? truthyActive(row["Aktif"]) : true;
+
+      const rawBrand = String(row["Marka"] ?? row["MARKA"] ?? "").trim();
+      let brand = rawBrand || inferBrandFromTitle(title);
+      const bObj = brand ? resolveBrandToAllowlist(brand) : null;
+
+      const sbKey = sbKeyOf(row);
+
+      // manual overrides
+      const depotCode = mapping.mapDepot[sbKey] ? normCode(mapping.mapDepot[sbKey]) : supplierCode;
+      const compelEan = mapping.mapCompel[sbKey] ? digitsOnly(mapping.mapCompel[sbKey]) : ean;
+
+      const eanOk = (compelEan && compelEan.length === 13);
+
+      // Brand filter:
+      // - If we can resolve brand -> in scope
+      // - If brand missing/unresolved:
+      //    - If scanAllUsed and EAN matches Compel -> in scope
+      //    - else ignore (but count it) and still show in manual? We'll show in manual only if it has some keys.
+      let brandInAllow = !!bObj;
+
+      let compelRec = (eanOk ? (compelMap.get(compelEan) || null) : null);
+      let eanMatched = !!compelRec;
+
+      if (!brandInAllow){
+        if (!brand) unknownBrand++;
+        if (scanAllUsed && eanMatched){
+          matchedByEanNoBrand++;
+          brandInAllow = true; // confirmed by EAN in Compel
+        } else {
+          ignoredBrand++;
+          // still add to manual only if user can fix brand by mapping EAN or depot code
+          const seo = normalizeSeoLink(row["SEO Link"] ?? row["SEO"] ?? "");
+          manual.push({
+            sbKey, title: title || "(Ürün)",
+            supplierCode, ean,
+            active,
+            depotStock: 0,
+            compelStock: 0,
+            compelUrl: "",
+            seoLink: seo,
+            note: "Ignore (marka allowlist dışı / bulunamadı)",
+          });
+          continue;
+        }
+      }
+
+      inScope++;
+
+      const depotStock = depotCode ? (depotMap.get(depotCode) || 0) : 0;
+      const cStock = compelRec ? (compelRec.stock ?? 0) : 0;
+      const out = {
+        sbKey,
+        title: title || "(Ürün)",
+        supplierCode,
+        ean: eanOk ? compelEan : ean,
+        active,
+        depotStock,
+        compelStock: (compelRec && compelRec.stock === null) ? null : cStock,
+        compelUrl: (compelRec && compelRec.url) ? compelRec.url : "",
+        seoLink: normalizeSeoLink(row["SEO Link"] ?? row["SEO"] ?? ""),
+        note: "",
+      };
+
+      const depotMatched = depotCode && depotMap.has(depotCode);
+      const compelMatched = eanOk && compelMap.has(compelEan);
+
+      // Manual if can't match any side cleanly
+      if (!supplierCode || !eanOk || !depotMatched || !compelMatched){
+        manual.push(out);
+      }
+
+      // Decisions
+      const c = out.compelStock;
+      const closeable = active && depotStock === 0 && c === 0;
+      if (closeable) close.push(out);
+      else {
+        const keepIt = (depotStock > 0) || (c === null) || (c > 0);
+        if (keepIt) keep.push(out);
+      }
+
+      if (i % 1500 === 0) { /* UI breath for huge files */ }
+    }
+
+    // Sort (optional): close by title, keep by title
+    const byTitle = (a,b)=> (a.title||"").localeCompare(b.title||"", "tr", {sensitivity:"base"});
+    close.sort(byTitle);
+    keep.sort(byTitle);
+
+    return { close, keep, manual, meta: { inScope, ignoredBrand, unknownBrand, matchedByEanNoBrand } };
+  }
+
+  function setCounts(){
+    els.cntClose.textContent = String(lists.close.length);
+    els.cntKeep.textContent = String(lists.keep.length);
+    els.cntManual.textContent = String(lists.manual.length);
   }
 
   function renderTable(tab){
     currentTab = tab;
     els.tabs.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+
     const rows = lists[tab] || [];
-    els.btnExportList.disabled = rows.length === 0;
+    els.btnExportCSV.disabled = rows.length === 0;
+    els.btnExportTXT.disabled = rows.length === 0;
 
     els.thead.innerHTML = "";
     els.tbody.innerHTML = "";
@@ -522,10 +690,11 @@
         <tr>
           <th>Ürün</th>
           <th>Tedarikçi Ürün Kodu</th>
-          <th>Barkod</th>
+          <th>Barkod/EAN</th>
           <th>Aktif</th>
-          <th>Depo eşle</th>
-          <th>Compel EAN eşle</th>
+          <th>Not</th>
+          <th>Depo eşle (Stok Kodu)</th>
+          <th>Compel eşle (EAN)</th>
           <th></th>
         </tr>`;
       for (const r of rows){
@@ -542,9 +711,12 @@
           tdTitle.appendChild(a);
         } else tdTitle.textContent = r.title;
 
-        const tdSup = document.createElement("td"); tdSup.textContent = r.supplierCode;
-        const tdEan = document.createElement("td"); tdEan.textContent = r.ean;
+        const tdSup = document.createElement("td"); tdSup.textContent = r.supplierCode || "";
+        const tdEan = document.createElement("td"); tdEan.textContent = r.ean || "";
         const tdAct = document.createElement("td"); tdAct.textContent = r.active ? "1" : "0";
+
+        const tdNote = document.createElement("td");
+        tdNote.innerHTML = r.note ? `<span class="chip">${escapeHtml(r.note)}</span>` : `<span class="muted">—</span>`;
 
         const tdDep = document.createElement("td");
         const inpDep = document.createElement("input");
@@ -569,7 +741,8 @@
           if (dep) mapping.mapDepot[r.sbKey] = dep; else delete mapping.mapDepot[r.sbKey];
           if (com.length === 13) mapping.mapCompel[r.sbKey] = com; else delete mapping.mapCompel[r.sbKey];
           saveMapping();
-          setStatus("Kaydedildi. Generate'e tekrar bas (şimdilik).");
+          setStatus("Kaydedildi. Recalculate ile anında güncelleyebilirsin.");
+          els.btnRecalc.disabled = !cache.sbRows;
         });
         tdBtn.appendChild(btn);
 
@@ -577,6 +750,7 @@
         tr.appendChild(tdSup);
         tr.appendChild(tdEan);
         tr.appendChild(tdAct);
+        tr.appendChild(tdNote);
         tr.appendChild(tdDep);
         tr.appendChild(tdCom);
         tr.appendChild(tdBtn);
@@ -586,12 +760,11 @@
       return;
     }
 
-    // close / keep
     els.thead.innerHTML = `
       <tr>
         <th>Ürün</th>
         <th>Tedarikçi Ürün Kodu</th>
-        <th>Barkod</th>
+        <th>Barkod/EAN</th>
         <th>Depo</th>
         <th>Compel</th>
         <th>Aktif</th>
@@ -611,16 +784,16 @@
         tdTitle.appendChild(a);
       } else tdTitle.textContent = r.title;
 
-      const tdSup = document.createElement("td"); tdSup.textContent = r.supplierCode;
-      const tdEan = document.createElement("td"); tdEan.textContent = r.ean;
+      const tdSup = document.createElement("td"); tdSup.textContent = r.supplierCode || "";
+      const tdEan = document.createElement("td"); tdEan.textContent = r.ean || "";
 
       const tdDep = document.createElement("td");
-      tdDep.textContent = String(r.depotStock);
-      tdDep.className = r.depotStock > 0 ? "ok" : "bad";
+      tdDep.textContent = String(r.depotStock ?? 0);
+      tdDep.className = (r.depotStock ?? 0) > 0 ? "ok" : "bad";
 
       const tdCom = document.createElement("td");
-      tdCom.textContent = (r.compelStock === null ? "?" : String(r.compelStock));
-      tdCom.className = (r.compelStock === null ? "warn" : (r.compelStock > 0 ? "ok" : "bad"));
+      tdCom.textContent = (r.compelStock === null ? "?" : String(r.compelStock ?? 0));
+      tdCom.className = (r.compelStock === null ? "warn" : ((r.compelStock ?? 0) > 0 ? "ok" : "bad"));
 
       const tdAct = document.createElement("td"); tdAct.textContent = r.active ? "1" : "0";
 
@@ -635,81 +808,63 @@
     }
   }
 
-  function buildDecisionLists(sbRows, depotMap, compelMap){
-    const close = [];
-    const keep = [];
-    const manual = [];
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
 
-    let inScope = 0;
+  // --- Core actions ---
+  async function loadBrands(){
+    setProgress(3);
+    setStatus("Compel markaları yükleniyor…");
+    const res = await fetch(`${API_BASE}/api/brands`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Worker /api/brands hata: " + res.status);
+    BRANDS = await res.json();
+    buildBrandNormList();
+    els.pillBrands.textContent = `Compel markaları: ${BRANDS.length}`;
+    setProgress(8);
+    setStatus("Hazır. products.csv seç.");
+  }
 
-    for (const row of sbRows){
-      const title = String(row["Ürün Adı"] ?? "").trim();
-      const supplierCode = normCode(row["Tedarikçi Ürün Kodu"] ?? "");
-      const ean = digitsOnly(row["Barkod"] ?? "");
-      const active = truthyActive(row["Aktif"]);
+  async function parseProductsFile(file){
+    const text = await readFileText(file);
+    const grid = parseDelimitedText(text);
+    const sbRows = rowsToObjects(grid);
+    return sbRows;
+  }
 
-      // Marka filtresi: Marka sütunu yoksa ürün adından tahmin
-      const brand = String(row["Marka"] ?? "").trim() || inferBrandFromTitle(title);
-      const inAllow = brand ? allowlistHas(brand) : false;
-
-      if (!inAllow) continue; // ✅ Compel’de olmayan markalar ignore
-      inScope++;
-
-      const sbKey = sbKeyOf(row);
-
-      // manual overrides
-      const depotCode = mapping.mapDepot[sbKey] ? normCode(mapping.mapDepot[sbKey]) : supplierCode;
-      const compelEan = mapping.mapCompel[sbKey] ? digitsOnly(mapping.mapCompel[sbKey]) : ean;
-
-      const depotStock = depotCode ? (depotMap.get(depotCode) || 0) : 0;
-
-      const compelRec = (compelEan && compelEan.length === 13) ? (compelMap.get(compelEan) || null) : null;
-      const compelStock = compelRec ? (compelRec.stock ?? 0) : 0;
-      const compelUrl = compelRec ? (compelRec.url || "") : "";
-
-      const seo = String(row["SEO Link"] ?? "").trim();
-
-      const out = {
-        sbKey,
-        title,
-        supplierCode,
-        ean,
-        active,
-        depotStock,
-        compelStock: (compelRec && (compelRec.stock === null)) ? null : compelStock,
-        compelUrl,
-        seoLink: seo,
-      };
-
-      const depotMatched = depotCode && depotMap.has(depotCode);
-      const compelMatched = compelEan && compelEan.length === 13 && compelMap.has(compelEan);
-
-      // Manuel list: herhangi bir taraf eşleşmediyse (veya anahtar eksikse)
-      if (!supplierCode || !ean || !depotMatched || !compelMatched){
-        manual.push(out);
-      }
-
-      // Karar: "Bilinmiyor" (null) varsa güvenli tarafta: açık kalsın
-      const cStock = out.compelStock;
-      const closeable = active && depotStock === 0 && cStock === 0; // null değilse 0
-      if (closeable) close.push(out);
-      else {
-        const keepIt = (depotStock > 0) || (cStock === null) || (cStock > 0);
-        if (keepIt) keep.push(out);
-      }
+  function chooseBrandsToScan(sbRows, scanAllIfNeeded){
+    // try to collect brands from products that are resolvable to allowlist
+    const uniq = new Map(); // normName -> brandObj
+    let brandColExists = false;
+    for (const r of sbRows){
+      if ("Marka" in r || "MARKA" in r) brandColExists = true;
+      const title = String(r["Ürün Adı"] ?? r["Urun Adi"] ?? r["Ürün Adi"] ?? "").trim();
+      const rawBrand = String(r["Marka"] ?? r["MARKA"] ?? "").trim();
+      const brandGuess = rawBrand || inferBrandFromTitle(title);
+      const bObj = brandGuess ? resolveBrandToAllowlist(brandGuess) : null;
+      if (bObj) uniq.set(bObj.normName, bObj);
     }
+    const list = [...uniq.values()];
 
-    return { close, keep, manual, inScope };
+    // If nothing resolvable and checkbox on => scan all
+    const useAll = (list.length === 0 && scanAllIfNeeded);
+    return { brandsToScan: useAll ? BRANDS : list, scanAllUsed: useAll, brandColExists };
   }
 
   async function generate(){
     const fProducts = els.fProducts.files?.[0] || null;
     if (!fProducts){ setStatus("products.csv seç."); return; }
 
-    setProgress(12);
+    setProgress(10);
     setStatus("products.csv okunuyor…");
+    await tick();
 
-    // mapping.json yüklenmişse içeri al
+    // mapping.json import
     const fMap = els.fMapping.files?.[0] || null;
     if (fMap){
       try{
@@ -717,127 +872,176 @@
         mapping = { version: 1, mapDepot: j.mapDepot || {}, mapCompel: j.mapCompel || {} };
         saveMapping();
       } catch {
-        setStatus("mapping.json okunamadı (devam ediyorum).");
+        setStatus("mapping.json okunamadı (devam).");
       }
     }
 
-    // products.csv parse
-    const csvText = await readFileText(fProducts);
-    const grid = parseCsvText(csvText);
-    const sbRows = rowsToObjects(grid);
-
+    const sbRows = await parseProductsFile(fProducts);
     setProgress(20);
-    setStatus(`products.csv satır: ${sbRows.length}. Depo verisi hazırlanıyor…`);
+    setStatus(`products satır: ${sbRows.length}. Depo hazırlanıyor…`);
+    await tick();
 
-    // Depo
+    // Depot
     let depotMap = new Map();
     const fAide = els.fAide.files?.[0] || null;
     const paste = els.taDepot.value || "";
-
     if (fAide){
       depotMap = await parseDepotFromXlsx(fAide);
     } else if (paste.trim()){
       depotMap = await parseDepotFromPaste(paste);
     } else {
-      depotMap = new Map(); // depo yoksa her şey 0 sayılır
+      depotMap = new Map();
     }
 
-    setProgress(35);
-    setStatus(`Depo satırları (unique Stok Kodu): ${depotMap.size}. Compel verisi hazırlanıyor…`);
+    setProgress(30);
+    setStatus(`Depo unique stok kodu: ${depotMap.size}. Compel hazırlanıyor…`);
+    await tick();
 
-    // Compel: TXT varsa onu kullan, yoksa Worker scan
+    // Compel
     let compelMap = new Map();
     const fCompel = els.fCompel.files?.[0] || null;
+
+    let scanAllUsed = false;
+    let brandColExists = false;
 
     if (fCompel){
       compelMap = await parseCompelFromTxt(fCompel);
       setProgress(55);
-      setStatus(`Compel TXT alındı. EAN sayısı: ${compelMap.size}`);
+      setStatus(`Compel TXT alındı. EAN: ${compelMap.size}`);
     } else {
-      // products içinden allowlist brand set çıkar
-      const brandSet = new Map(); // norm -> brandObj
-      for (const r of sbRows){
-        const title = String(r["Ürün Adı"] ?? "").trim();
-        const brand = String(r["Marka"] ?? "").trim() || inferBrandFromTitle(title);
-        if (!brand) continue;
-        const bObj = pickBrandObj(brand);
-        if (bObj) brandSet.set(bObj.normName, bObj);
-      }
-      const brandsToScan = [...brandSet.values()];
-      els.scopePill.textContent = `Kapsam markası: ${brandsToScan.length}`;
+      const scanAllIfNeeded = !!els.chkScanAll.checked;
+      const pick = chooseBrandsToScan(sbRows, scanAllIfNeeded);
+      const brandsToScan = pick.brandsToScan;
+      scanAllUsed = pick.scanAllUsed;
+      brandColExists = pick.brandColExists;
 
-      if (!brandsToScan.length){
-        setStatus("Marka tespit edemedim. (products.csv'de Marka yoksa ürün adında marka geçmeli.)");
-        setProgress(40);
-        // Compel boş kalır, ama yine de karar üretelim
+      els.pillScope.textContent = `Marka taraması: ${brandsToScan.length}${scanAllUsed ? " (tümü)" : ""}`;
+
+      if (brandsToScan.length === 0){
+        // no brand match and scanAll not enabled
+        setProgress(35);
+        setStatus("Uyarı: products.csv’de marka eşleşmedi. 'tüm markaları tara' seçeneğini açabilirsin.");
         compelMap = new Map();
       } else {
-        setProgress(40);
-        setStatus(`Compel taraması başlıyor. Marka: ${brandsToScan.length}`);
+        setProgress(35);
+        setStatus(`Compel taraması başlıyor… (marka: ${brandsToScan.length})`);
         compelMap = await scanCompelFromWorker(brandsToScan);
         setStatus(`Compel bitti. EAN: ${compelMap.size}`);
       }
+
+      // If Brand col missing, auto-suggest scanAll for next time
+      if (!brandColExists && !els.chkScanAll.checked){
+        setStatus(els.status.textContent + "\nNot: Marka sütunu yoksa 'tüm markaları tara' daha iyi çalışır.");
+      }
     }
 
-    // Karar listeleri
     setProgress(92);
     setStatus("Eşleştirme + listeler…");
+    await tick();
 
-    const { close, keep, manual, inScope } = buildDecisionLists(sbRows, depotMap, compelMap);
-    lists = { close, keep, manual };
+    const built = buildDecisionLists(sbRows, depotMap, compelMap, scanAllUsed);
+    lists = { close: built.close, keep: built.keep, manual: built.manual };
+    setCounts();
 
-    els.cntClose.textContent = String(close.length);
-    els.cntKeep.textContent = String(keep.length);
-    els.cntManual.textContent = String(manual.length);
-    els.scopePill.textContent = `Kapsam ürün: ${inScope}`;
+    // cache for recalc
+    cache.sbRows = sbRows;
+    cache.depotMap = depotMap;
+    cache.compelMap = compelMap;
+    cache.meta = built.meta;
+    cache.scanAllUsed = scanAllUsed;
+
+    els.btnRecalc.disabled = false;
+
+    els.pillScope.textContent = `Kapsam ürün: ${built.meta.inScope}`;
+    els.pillIgnored.textContent =
+      `Ignore: ${built.meta.ignoredBrand} | Brand? ${built.meta.unknownBrand} | EAN-Confirm: ${built.meta.matchedByEanNoBrand}`;
 
     setProgress(100);
-    setStatus(`Bitti.\nKapatılabilir: ${close.length}\nAçık kalsın: ${keep.length}\nManuel: ${manual.length}`);
+    setStatus(
+      `Bitti.\n` +
+      `Kapatılabilir: ${lists.close.length}\n` +
+      `Açık kalsın: ${lists.keep.length}\n` +
+      `Manuel: ${lists.manual.length}\n` +
+      `Kapsam ürün: ${built.meta.inScope}`
+    );
 
     renderTable(currentTab);
   }
 
-  // Events
+  function recalc(){
+    if (!cache.sbRows) return;
+    setProgress(95);
+    const built = buildDecisionLists(cache.sbRows, cache.depotMap || new Map(), cache.compelMap || new Map(), cache.scanAllUsed);
+    lists = { close: built.close, keep: built.keep, manual: built.manual };
+    setCounts();
+    cache.meta = built.meta;
+    els.pillScope.textContent = `Kapsam ürün: ${built.meta.inScope}`;
+    els.pillIgnored.textContent =
+      `Ignore: ${built.meta.ignoredBrand} | Brand? ${built.meta.unknownBrand} | EAN-Confirm: ${built.meta.matchedByEanNoBrand}`;
+    setStatus(`Recalculate bitti.\nKapatılabilir: ${lists.close.length}\nAçık kalsın: ${lists.keep.length}\nManuel: ${lists.manual.length}`);
+    renderTable(currentTab);
+    setProgress(100);
+  }
+
+  // --- UI wiring ---
+  function updateButtons(){
+    els.btnGenerate.disabled = !(els.fProducts.files?.[0]);
+    els.btnExportMapping.disabled = !localStorage.getItem(LS_KEY);
+    els.btnRecalc.disabled = !cache.sbRows;
+  }
+
   els.btnGenerate.addEventListener("click", () => generate().catch(e => {
     setStatus("Hata:\n" + (e?.message || e));
   }));
+  els.btnRecalc.addEventListener("click", recalc);
 
   els.btnExportMapping.addEventListener("click", () => downloadJson(mapping, "mapping.json"));
   els.btnClearMapping.addEventListener("click", resetMapping);
 
-  els.btnExportList.addEventListener("click", () => {
+  els.tabs.forEach(btn => btn.addEventListener("click", () => renderTable(btn.dataset.tab)));
+
+  els.btnExportCSV.addEventListener("click", () => {
     const rows = lists[currentTab] || [];
     const out = rows.map(r => ({
       "Ürün": r.title,
       "Tedarikçi Ürün Kodu": r.supplierCode,
-      "Barkod": r.ean,
-      "Depo Stok": r.depotStock,
-      "Compel Stok": (r.compelStock === null ? "" : r.compelStock),
+      "Barkod/EAN": r.ean,
+      "Depo Stok": r.depotStock ?? 0,
+      "Compel Stok": (r.compelStock === null ? "" : (r.compelStock ?? 0)),
       "Aktif": r.active ? 1 : 0,
       "Compel URL": r.compelUrl || "",
       "SEO Link": r.seoLink || "",
+      "Not": r.note || "",
     }));
     downloadCsv(out, `stok-${currentTab}.csv`);
   });
 
-  els.tabs.forEach(btn => btn.addEventListener("click", () => renderTable(btn.dataset.tab)));
+  els.btnExportTXT.addEventListener("click", () => {
+    const rows = lists[currentTab] || [];
+    if (!rows.length) return;
+    const out = rows.map(r => ({
+      "Ürün": r.title,
+      "Tedarikçi Ürün Kodu": r.supplierCode,
+      "Barkod/EAN": r.ean,
+      "Depo Stok": r.depotStock ?? 0,
+      "Compel Stok": (r.compelStock === null ? "" : (r.compelStock ?? 0)),
+      "Aktif": r.active ? 1 : 0,
+      "Compel URL": r.compelUrl || "",
+      "SEO Link": r.seoLink || "",
+      "Not": r.note || "",
+    }));
+    downloadTsv(out, `stok-${currentTab}.txt`);
+  });
 
-  function updateGenerateEnabled(){
-    els.btnGenerate.disabled = !(els.fProducts.files?.[0]);
-    els.btnExportMapping.disabled = !localStorage.getItem(LS_KEY);
-  }
-  els.fProducts.addEventListener("change", updateGenerateEnabled);
-  els.fAide.addEventListener("change", updateGenerateEnabled);
-  els.fCompel.addEventListener("change", updateGenerateEnabled);
-  els.fMapping.addEventListener("change", updateGenerateEnabled);
-  updateGenerateEnabled();
+  [els.fProducts, els.fAide, els.fCompel, els.fMapping].forEach(el => el.addEventListener("change", updateButtons));
+  updateButtons();
 
   // Boot
-  loadBrands().then(() => {
-    updateGenerateEnabled();
-  }).catch(e => {
+  loadBrands().then(updateButtons).catch(e => {
     setStatus("Worker erişilemedi:\n" + (e?.message || e));
   });
+
+})();
 </script>
 </body>
 </html>
