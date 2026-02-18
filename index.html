@@ -24,26 +24,26 @@
       display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-start
     }
     .sep{width:8px;flex:0 0 auto}
-    .sepSm{width:6px;flex:0 0 auto} /* Temizle ↔ CSV arasında */
+    .sepSm{width:6px;flex:0 0 auto}
 
+    /* Font eşitle: butonlar ve yükleme kutuları aynı */
     button,.file{
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
       font-weight:900;font-size:14px;
       height:36px;
+      display:flex;align-items:center;justify-content:center; /* dikey-yatay ortala */
+      line-height:1;
     }
 
-    button{
-      padding:0 12px;
-      cursor:pointer;line-height:1
-    }
+    button{padding:0 12px;cursor:pointer}
     button:hover{background:#1f2a44;border-color:#6b7da6}
     button:disabled{opacity:.55;cursor:not-allowed}
     button:disabled:hover{background:#111827;border-color:#2a3140}
 
     /* Dosya kutuları (Temizle hover gibi) */
     .file{
-      display:flex;align-items:center;gap:8px;
-      padding:0 10px;
+      display:flex;align-items:center;justify-content:flex-start;
+      gap:8px;padding:0 10px;
       user-select:none;cursor:pointer;max-width:520px
     }
     .file:hover{background:#1f2a44;border-color:#6b7da6}
@@ -55,7 +55,9 @@
       max-width:170px
     }
 
-    /* Bilgi kutusu */
+    /* Bilgi kutusu: en sağa yasla */
+    #infoBox{ margin-left:auto; }
+
     .ibox{
       height:36px;
       display:flex;align-items:center;flex-wrap:wrap;gap:6px;
@@ -64,16 +66,14 @@
     .chip{
       padding:3px 9px;border:1px solid #2a3140;border-radius:999px;background:#0b0d12;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
-      font-weight:1000;font-size:14px;line-height:1.2
+      font-weight:1000;font-size:14px;line-height:1.1
     }
     .chip.ok{color:#86efac}
     .chip.bad{color:#fca5a5}
     .chip.unk{color:#fcd34d}
     .chip.muted{opacity:.88;font-weight:900}
 
-    section.panel{
-      padding:8px;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden
-    }
+    section.panel{padding:8px;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
     section.panel.results{flex:2 1 0}
     section.panel.unmatched{flex:1 1 0}
 
@@ -95,7 +95,7 @@
       overflow:hidden;
       text-overflow:ellipsis;
       font-size:14px;
-      line-height:1.2
+      line-height:1.1
     }
 
     /* Başlıklar: kısıtlama yok, taşabilir/üst üste binebilir */
@@ -107,10 +107,16 @@
     }
 
     tbody tr:hover{background:#111827}
-
     .left{ text-align:left !important; }
 
-    /* Ürün adı hücreleri: kısıtlama yok, yan hücrelerin üstüne taşabilir */
+    /* Başlık içi parantez: 2 birim küçük, bold değil */
+    .hMain{font-weight:1100}
+    .hParen{font-size:12px;font-weight:400;opacity:.9}
+
+    /* Ölçüm için: tüm hücre metinleri */
+    .cellTxt{display:inline-block}
+
+    /* Ürün adı hücresi: taşabilir; ama metin JS ile max-width alıp … ile kesilir */
     td.nameCell{
       overflow:visible;
       text-overflow:clip;
@@ -119,29 +125,33 @@
     }
     td.nameCell .nm{
       display:inline-block;
-      max-width:none;
-      overflow:visible;
-      text-overflow:clip;
       white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:9999px; /* JS sonra ayarlıyor */
       position:relative;
       z-index:3;
     }
 
-    /* Link genel stiller */
-    a{
-      color:#93c5fd;text-decoration:none;
+    /* EAN’lar kesilmesin (görsel olarak taşabilir) */
+    td.eanCell{
+      overflow:visible;
+      text-overflow:clip;
     }
-    a:hover{text-decoration:underline}
 
-    /* Başlık içi parantez stili */
-    .hMain{font-weight:1100}
-    .hParen{font-size:12px;font-weight:400;opacity:.9} /* 2 birim küçük, bold değil */
+    /* Kalın istenen hücreler */
+    td.seqCell{font-weight:1100}
+    td.statusBold{font-weight:1100}
+
+    a{color:#93c5fd;text-decoration:none}
+    a:hover{text-decoration:underline}
 
     input[type=text]{
       width:100%;min-width:78px;box-sizing:border-box;
       height:36px;
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
-      padding:0 10px;font-weight:900;font-size:14px;line-height:1
+      padding:0 10px;font-weight:900;font-size:14px;line-height:1;
+      display:flex;align-items:center
     }
     input[type=text]:focus{outline:none;border-color:#6b7da6}
 
@@ -182,14 +192,12 @@
 
       <span class="sepSm"></span>
 
-      <!-- Outputs (Temizle'nin sağında) -->
+      <!-- Outputs -->
       <button id="dl1" disabled>CSV Çıktı</button>
       <button id="dl2" disabled style="display:none">Eşleşmeyen CSV</button>
       <button id="dl3" disabled>JSON Çıktı</button>
 
-      <span class="sep"></span>
-
-      <!-- Info -->
+      <!-- Info (en sağda) -->
       <div class="ibox" id="infoBox">
         <span class="chip ok" id="stChip">Hazır</span>
         <span class="chip" id="l1Chip" title="L1">L1:-</span>
