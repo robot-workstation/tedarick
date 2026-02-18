@@ -68,8 +68,11 @@ function byMap(r1){
   return(ws&&idxW.get(ws))||(sup&&idxS.get(sup))||null
 }
 
+/* stok label’ları */
+const compelLbl=raw=>{const s=(raw??'').toString().trim();if(!s)return'';return inStock(s,{source:'compel'})?'Compelde Var':'Compelde Yok'};
+const sesciLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Sescibabada Var':'Sescibabada Yok'):'';
+
 const stokDur=(aRaw,bRaw,ok)=>{if(!ok)return'—';const a=inStock(aRaw,{source:'compel'}),b=inStock(bRaw,{source:'products'});return a===b?'Doğru':'Hatalı'};
-const stokLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Stokta Var':'Stokta Yok'):'';
 const eanDur=(aRaw,bRaw,ok)=>{
   if(!ok)return'—';
   const a=new Set(eans(aRaw||'')),b=eans(bRaw||'');
@@ -79,14 +82,16 @@ const eanDur=(aRaw,bRaw,ok)=>{
 };
 
 function outRow(r1,r2,how){
-  const s1=T(r1[C1.stok]||''),s2raw=r2?T(r2[C2.stok]||''):'';
+  const s1raw=T(r1[C1.stok]||''),s2raw=r2?T(r2[C2.stok]||''):'';
   const sup=r2?T(r2[C2.sup]||''):'',bark=r2?T(r2[C2.barkod]||''):'';
   const seoAbs=r2?safeUrl(normSeo(r2[C2.seo]||'')):'',clink=safeUrl(r1[C1.link]||'');
   return{
     "Sıra No":T(r1[C1.siraNo]||''),"Marka":T(r1[C1.marka]||''),
     "Ürün Adı (Compel)":T(r1[C1.urunAdi]||''),"Ürün Adı (Sescibaba)":r2?T(r2[C2.urunAdi]||''):'',
     "Ürün Kodu (Compel)":T(r1[C1.urunKodu]||''),"Ürün Kodu (Sescibaba)":sup,
-    "Stok (Compel)":s1,"Stok (Sescibaba)":stokLbl(s2raw,!!r2),"Stok Durumu":stokDur(s1,s2raw,!!r2),
+    "Stok (Compel)":compelLbl(s1raw),
+    "Stok (Sescibaba)":sesciLbl(s2raw,!!r2),
+    "Stok Durumu":stokDur(s1raw,s2raw,!!r2),
     "EAN (Compel)":T(r1[C1.ean]||''),"EAN (Sescibaba)":bark,"EAN Durumu":eanDur(r1[C1.ean]||'',bark,!!r2),
     _m:!!r2,_how:r2?how:'',_k:kNew(r1),_bn:B(r1[C1.marka]||''),_seo:seoAbs,_clink:clink
   }
@@ -109,7 +114,6 @@ let _raf=0,_bound=false;
 const sched=()=>{if(_raf)cancelAnimationFrame(_raf);_raf=requestAnimationFrame(adjustLayout)};
 const firstEl=td=>td?.querySelector('.cellTxt,.nm,input,button')||null;
 
-/* ✅ Başlıkları tek satır + kesmeden + çakışmadan sığdır */
 function fitHeaderText(tableId){
   const t=$(tableId);if(!t)return;
   const ths=t.querySelectorAll('thead th');
@@ -125,9 +129,7 @@ function fitHeaderText(tableId){
 
 function adjustLayout(){
   _raf=0;
-
-  fitHeaderText('t1');
-  fitHeaderText('t2');
+  fitHeaderText('t1');fitHeaderText('t2');
 
   const t=$('t1');if(!t)return;
   const rows=t.querySelectorAll('tbody tr'),G=6;
@@ -146,7 +148,6 @@ function adjustLayout(){
       nm.style.maxWidth=Math.max(40,maxRight-nmR.left)+'px'
     }
   }
-
   if(!_bound){_bound=true;addEventListener('resize',sched)}
 }
 
@@ -214,11 +215,20 @@ function manual(i){
   U.splice(i,1);render()
 }
 
+/* ✅ Tek buton mod değişimi */
+let listed=false;
+const setGoMode=mode=>{
+  const b=$('go'); if(!b) return;
+  if(mode==='reset'){listed=true;b.textContent='Temizle';b.title='Temizle'}
+  else{listed=false;b.textContent='Listele';b.title='Listele'}
+};
+
 async function generate(){
   const a=$('f1').files[0],b=$('f2').files[0],j=$('f3').files[0];
   if(!a||!b)return alert('Lütfen 1) ve 2) CSV dosyalarını seç.');
+
   setStatus('Okunuyor…','unk');setChip('l1Chip','L1:—');setChip('l2Chip','L2:—');chipVis('jsonChip',false);
-  let jsonLoaded=false;
+  let jsonLoaded=false,ok=false;
 
   try{
     const[t1,t2,t3]=await Promise.all([readFileText(a),readFileText(b),j?readFileText(j):Promise.resolve(null)]);
@@ -251,20 +261,29 @@ async function generate(){
     buildIdx();runMatch();
     setStatus('Hazır','ok');setChip('l1Chip',`L1:${L1.length}`);setChip('l2Chip',`L2:${L2.length}/${L2all.length}`);
 
-    if(jsonLoaded){const n=Object.keys(map.mappings||{}).length;setChip('jsonChip',`JSON:${n}`,'muted');chipVis('jsonChip',true)}else chipVis('jsonChip',false)
+    if(jsonLoaded){const n=Object.keys(map.mappings||{}).length;setChip('jsonChip',`JSON:${n}`,'muted');chipVis('jsonChip',true)}else chipVis('jsonChip',false);
+
+    ok=true;
   }catch(e){console.error(e);setStatus('Hata (konsol)','bad')}
+
+  if(ok) setGoMode('reset');
 }
 
 $('dl1').onclick=()=>{const clean=R.map(r=>Object.fromEntries(COLS.map(c=>[c,r[c]])));downloadBlob('sonuc-eslestirme.csv',new Blob([toCSV(clean,COLS)],{type:'text/csv;charset=utf-8'}))};
 $('dl2').onclick=()=>{const cols=["Sıra No","Marka","Ürün Adı (Compel)","Ürün Kodu (Compel)","Stok (Compel)","EAN (Compel)"];const clean=U.map(r=>Object.fromEntries(cols.map(c=>[c,r[c]])));downloadBlob('eslesmeyenler.csv',new Blob([toCSV(clean,cols)],{type:'text/csv;charset=utf-8'}))};
 $('dl3').onclick=()=>{map.meta=map.meta||{};map.meta.updatedAt=nowISO();downloadBlob('mapping.json',new Blob([JSON.stringify(map,null,2)],{type:'application/json;charset=utf-8'}))};
 
-$('go').onclick=generate;
-$('reset').onclick=()=>location.reload();
+/* ✅ go: Listele veya Temizle */
+$('go').onclick=()=>{ if(listed) location.reload(); else generate(); };
 
+/* Yükleme kutuları */
 const bind=(inId,outId,empty)=>{
   const inp=$(inId),out=$(outId);if(!inp||!out)return;
   const upd=()=>{const f=inp.files?.[0];if(!f){out.textContent=empty;out.title=empty}else{out.textContent='Seçildi';out.title=f.name}};
   inp.addEventListener('change',upd);upd()
 };
-bind('f1','n1','Seçilmedi');bind('f2','n2','Seçilmedi');bind('f3','n3','Seçilmedi');
+bind('f1','n1','Yükle');
+bind('f2','n2','Yükle');
+bind('f4','n4','Yükle'); /* depo stok (fonksiyonsuz) */
+bind('f3','n3','Yükle');
+setGoMode('list');
