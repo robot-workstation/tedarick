@@ -28,7 +28,7 @@ let C1 = {}, C2 = {};
 let idxB = new Map(), idxW = new Map(), idxS = new Map();
 let R = [], U = [];
 
-// CSV kolon anahtarları (değişmiyor)
+// CSV kolon anahtarları
 const COLS = [
   "Sıra No","Marka",
   "Ürün Adı (Compel)","Ürün Adı (Sescibaba)",
@@ -131,7 +131,7 @@ function findByEan(r1) {
   return null;
 }
 
-// EAN eşleşmezse: Compel Ürün Kodu -> Sescibaba Web Servis Kodu dene
+// EAN eşleşmezse: Compel Ürün Kodu -> Sescibaba Web Servis Kodu
 function findByCompelCodeWs(r1) {
   const code = T(r1[C1.urunKodu] || '');
   if (!code) return null;
@@ -139,7 +139,6 @@ function findByCompelCodeWs(r1) {
   const r2 = idxW.get(code) || null;
   if (!r2) return null;
 
-  // marka güvenliği
   const b1 = B(r1[C1.marka] || '');
   const b2 = B(r2[C2.marka] || '');
   if (b1 && b2 && b1 !== b2) return null;
@@ -159,7 +158,6 @@ function findByMap(r1) {
   return (ws && idxW.get(ws)) || (sup && idxS.get(sup)) || null;
 }
 
-// stok var/yok karşılaştır (products'ta "-" => yok)
 function stokDurumu(compelStokRaw, prodStokRaw, matched) {
   if (!matched) return '—';
   const a = inStock(compelStokRaw, { source: 'compel' });
@@ -221,13 +219,8 @@ function outRow(r1, r2, how) {
 function runMatching() {
   R = []; U = [];
   for (const r1 of L1) {
-    // 1) EAN
     let r2 = findByEan(r1), how = r2 ? 'EAN' : '';
-
-    // 2) Compel Ürün Kodu -> Sescibaba Web Servis Kodu
     if (!r2) { r2 = findByCompelCodeWs(r1); if (r2) how = 'KOD'; }
-
-    // 3) JSON mapping
     if (!r2) { r2 = findByMap(r1); if (r2) how = 'JSON'; }
 
     const row = outRow(r1, r2, how);
@@ -237,7 +230,7 @@ function runMatching() {
   render();
 }
 
-/* ======= Sonuç tablosu: Ürün adları kısıtlanmaz (taşabilir) ======= */
+/* ======= Ürün adı link ======= */
 function cellNameLink(fullText, href) {
   const v = (fullText ?? '').toString();
   const u = href || '';
@@ -245,7 +238,7 @@ function cellNameLink(fullText, href) {
   return `<a class="nm" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`;
 }
 
-/* ======= Tablo responsive: yüzde kolonlar ======= */
+/* ======= Tablo ======= */
 function colGroupPerc(widths) {
   return `<colgroup>${widths.map(w => `<col style="width:${w}%">`).join('')}</colgroup>`;
 }
@@ -254,7 +247,6 @@ function dispColName(c) {
   return (c === "Sıra No") ? "Sıra" : c;
 }
 
-/* Başlık formatı: (Compel)/(Sescibaba) kısmı küçük + bold değil */
 function formatHeader(label) {
   const s = (label ?? '').toString();
   const m = s.match(/^(.*?)(\s*\([^)]*\))\s*$/);
@@ -264,8 +256,71 @@ function formatHeader(label) {
   return `<span class="hMain">${esc(main)}</span> <span class="hParen">${esc(par)}</span>`;
 }
 
+/* ======= Ürün adını "sonraki hücrenin yazısına kadar" uzatma =======
+   CSS ile olmaz; render sonrası ölçüp nm.maxWidth ayarlanır. */
+let _resizeBound = false;
+let _raf = 0;
+
+function scheduleAdjustNames() {
+  if (_raf) cancelAnimationFrame(_raf);
+  _raf = requestAnimationFrame(adjustNameWidths);
+}
+
+function getFirstContentEl(td) {
+  if (!td) return null;
+  return td.querySelector('.cellTxt, .nm, input, button');
+}
+
+function adjustNameWidths() {
+  _raf = 0;
+  const t = $('t1');
+  if (!t) return;
+  const rows = t.querySelectorAll('tbody tr');
+  const GAP = 6;
+
+  for (const tr of rows) {
+    const nameTds = tr.querySelectorAll('td.nameCell');
+    if (!nameTds.length) continue;
+
+    // Sağdan sola çalış: sağdaki ürün adını önce ayarla
+    for (let i = nameTds.length - 1; i >= 0; i--) {
+      const td = nameTds[i];
+      const nm = td.querySelector('.nm');
+      if (!nm) continue;
+
+      const nextTd = td.nextElementSibling;
+      const tdRect = td.getBoundingClientRect();
+      const nmRect = nm.getBoundingClientRect();
+
+      // Default: kendi hücresi kadar
+      let maxRight = tdRect.right - GAP;
+
+      // "Bir sonraki hücrenin içindeki yazı"nın sol sınırı
+      if (nextTd) {
+        const nextEl = getFirstContentEl(nextTd);
+        if (nextEl) {
+          const r = nextEl.getBoundingClientRect();
+          // yazının soluna kadar uzayabilir
+          maxRight = Math.min(maxRight + nextTd.getBoundingClientRect().width, r.left - GAP);
+        } else {
+          // sonraki hücre boşsa: sonraki hücrenin sağına kadar
+          maxRight = nextTd.getBoundingClientRect().right - GAP;
+        }
+      }
+
+      const maxW = Math.max(40, maxRight - nmRect.left);
+      nm.style.maxWidth = `${maxW}px`;
+    }
+  }
+
+  if (!_resizeBound) {
+    _resizeBound = true;
+    window.addEventListener('resize', scheduleAdjustNames);
+  }
+}
+
 function render() {
-  // 12 kolon toplam %100
+  // 12 kolon toplam %100 (EAN’lar da geniş)
   const W1 = [4,9,15,15,7,7,6,6,6,9,9,7];
 
   const head1 = COLS.map(c => {
@@ -275,15 +330,27 @@ function render() {
 
   const body1 = R.map((r) => {
     return `<tr>${
-      COLS.map(c => {
+      COLS.map((c, idx) => {
+        const v = r[c] ?? '';
+        const isSeq = (idx === 0);
+        const isStokDur = (c === "Stok Durumu");
+        const isEanDur = (c === "EAN Durumu");
+        const isEan = (c === "EAN (Compel)" || c === "EAN (Sescibaba)");
+
         if (c === "Ürün Adı (Compel)") {
-          return `<td class="left nameCell">${cellNameLink(r[c], r._clink || '')}</td>`;
+          return `<td class="left nameCell">${cellNameLink(v, r._clink || '')}</td>`;
         }
         if (c === "Ürün Adı (Sescibaba)") {
-          return `<td class="left nameCell">${cellNameLink(r[c], r._seo || '')}</td>`;
+          return `<td class="left nameCell">${cellNameLink(v, r._seo || '')}</td>`;
         }
-        const v = r[c] ?? '';
-        return `<td title="${esc(v)}">${esc(v)}</td>`;
+
+        const cls = [
+          isSeq ? 'seqCell' : '',
+          isStokDur || isEanDur ? 'statusBold' : '',
+          isEan ? 'eanCell' : ''
+        ].filter(Boolean).join(' ');
+
+        return `<td class="${cls}" title="${esc(v)}"><span class="cellTxt">${esc(v)}</span></td>`;
       }).join('')
     }</tr>`;
   }).join('');
@@ -306,7 +373,6 @@ function render() {
   }
 
   if (U.length) {
-    // Unmatched table (8 kolon %100)
     const W2 = [6,10,28,12,18,10,10,6];
 
     $('t2').innerHTML =
@@ -323,11 +389,11 @@ function render() {
       </tr></thead>` +
       `<tbody>${U.map((r,i)=>`
         <tr id="u_${i}">
-          <td title="${esc(r["Sıra No"])}">${esc(r["Sıra No"])}</td>
-          <td title="${esc(r["Marka"])}">${esc(r["Marka"])}</td>
-          <td class="left" title="${esc(r["Ürün Adı (Compel)"])}">${esc(r["Ürün Adı (Compel)"] || '')}</td>
-          <td title="${esc(r["Ürün Kodu (Compel)"])}">${esc(r["Ürün Kodu (Compel)"])}</td>
-          <td title="${esc(r["EAN (Compel)"])}">${esc(r["EAN (Compel)"])}</td>
+          <td class="seqCell" title="${esc(r["Sıra No"])}"><span class="cellTxt">${esc(r["Sıra No"])}</span></td>
+          <td title="${esc(r["Marka"])}"><span class="cellTxt">${esc(r["Marka"])}</span></td>
+          <td class="left" title="${esc(r["Ürün Adı (Compel)"])}"><span class="cellTxt">${esc(r["Ürün Adı (Compel)"] || '')}</span></td>
+          <td title="${esc(r["Ürün Kodu (Compel)"])}"><span class="cellTxt">${esc(r["Ürün Kodu (Compel)"])}</span></td>
+          <td class="eanCell" title="${esc(r["EAN (Compel)"])}"><span class="cellTxt">${esc(r["EAN (Compel)"])}</span></td>
           <td><input type="text" list="wsCodes" data-i="${i}" data-f="ws" placeholder="ws"></td>
           <td><input type="text" list="supCodes" data-i="${i}" data-f="sup" placeholder="sup"></td>
           <td><button class="mx" data-i="${i}">Eşleştir</button></td>
@@ -339,10 +405,12 @@ function render() {
   const matched = R.filter(x => x._m).length;
   setChip('sum', `Toplam ${R.length} • ✓${matched} • ✕${R.length - matched}`, 'muted');
 
-  // İndir butonları
   $('dl1').disabled = !R.length;
   $('dl3').disabled = false;
   if ($('dl2')) $('dl2').disabled = !U.length;
+
+  // Ürün adı genişliklerini ayarla
+  scheduleAdjustNames();
 }
 
 function manualMatch(i) {
@@ -378,9 +446,8 @@ function manualMatch(i) {
       [C1.ean]: r["EAN (Compel)"],
       [C1.link]: r._clink || ''
     };
-    const upd = outRow(r1stub, r2, 'MANUAL');
-    upd._k = r._k; upd._bn = b1;
-    R[idx] = upd;
+    R[idx] = outRow(r1stub, r2, 'MANUAL');
+    R[idx]._k = r._k; R[idx]._bn = b1;
   }
 
   U.splice(i,1);
