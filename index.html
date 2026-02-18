@@ -24,13 +24,15 @@
       display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-start
     }
 
+    .sep{width:8px;flex:0 0 auto}
+
     button,.file{
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
-      font-weight:900;font-size:14px; /* +1 */
+      font-weight:900;font-size:14px;
+      height:36px;
     }
 
     button{
-      height:36px;               /* file ile aynı yükseklik */
       padding:0 12px;
       cursor:pointer;line-height:1
     }
@@ -40,28 +42,29 @@
 
     /* Dosya kutuları (dar + butonla aynı yükseklik) */
     .file{
-      height:36px;
       display:flex;align-items:center;gap:8px;
       padding:0 10px;
       user-select:none;cursor:pointer;max-width:520px
     }
+    .file:hover{background:#1f2a44;border-color:#6b7da6} /* Temizle hover gibi */
     .file input{display:none}
     .fbtn{white-space:nowrap}
     .fname{
-      font-weight:800;opacity:.92;font-size:14px; /* +1 */
+      font-weight:800;opacity:.92;font-size:14px;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      max-width:220px
+      max-width:170px
     }
 
-    /* Bilgi kutusu (Temizle yanında ve CSV butonuna bitişik) */
+    /* Bilgi kutusu (butonlarla aynı hizalı yükseklik) */
     .ibox{
-      display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-      padding:6px 10px;border:1px solid #1f2430;border-radius:10px;background:#0f1320
+      height:36px;
+      display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+      padding:0 10px;border:1px solid #1f2430;border-radius:10px;background:#0f1320
     }
     .chip{
       padding:3px 9px;border:1px solid #2a3140;border-radius:999px;background:#0b0d12;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
-      font-weight:1000;font-size:14px;line-height:1.2 /* +1 */
+      font-weight:1000;font-size:14px;line-height:1.2
     }
     .chip.ok{color:#86efac}
     .chip.bad{color:#fca5a5}
@@ -85,7 +88,7 @@
 
     th,td{
       border-bottom:1px solid #1f2430;
-      padding:10px 8px; /* satır arası biraz açıldı */
+      padding:10px 8px;
       text-align:center;
       vertical-align:middle;
       white-space:nowrap;
@@ -113,12 +116,12 @@
       width:100%;min-width:78px;box-sizing:border-box;
       height:36px;
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
-      padding:0 10px;font-weight:900;font-size:14px;line-height:1 /* +1 */
+      padding:0 10px;font-weight:900;font-size:14px;line-height:1
     }
     input[type=text]:focus{outline:none;border-color:#6b7da6}
 
     @media (max-width:980px){
-      .fname{max-width:160px}
+      .fname{max-width:130px}
     }
   </style>
 </head>
@@ -127,28 +130,39 @@
 <main>
   <header class="topbar">
     <div class="controls">
-      <label class="file" title="1) compel-sonuc.csv">
-        <span class="fbtn">Compel CSV</span>
+      <!-- Upload boxes -->
+      <label class="file" title="Compel Sonuç (CSV)">
+        <span class="fbtn">Compel Sonuç</span>
         <span class="fname" id="n1">Seçilmedi</span>
         <input id="f1" type="file" accept=".csv,text/csv">
       </label>
 
-      <label class="file" title="2) products.csv">
-        <span class="fbtn">Products CSV</span>
+      <label class="file" title="Sescibaba Stok (CSV)">
+        <span class="fbtn">Sescibaba Stok</span>
         <span class="fname" id="n2">Seçilmedi</span>
         <input id="f2" type="file" accept=".csv,text/csv">
       </label>
 
-      <label class="file" title="3) mapping.json (opsiyonel)">
-        <span class="fbtn">Mapping JSON</span>
+      <label class="file" title="JSON Map (opsiyonel)">
+        <span class="fbtn">JSON Map</span>
         <span class="fname" id="n3">Opsiyonel</span>
         <input id="f3" type="file" accept=".json,application/json">
       </label>
 
+      <span class="sep"></span>
+
+      <!-- Actions -->
       <button id="go">Listele</button>
       <button id="reset" title="Her şeyi sıfırla">Temizle</button>
 
-      <!-- Bilgi kutusu -->
+      <!-- Outputs (Temizle'nin sağında) -->
+      <button id="dl1" disabled>CSV Çıktı</button>
+      <button id="dl2" disabled style="display:none">Eşleşmeyen CSV</button>
+      <button id="dl3" disabled>JSON Çıktı</button>
+
+      <span class="sep"></span>
+
+      <!-- Info (butonlarla aynı yükseklikte) -->
       <div class="ibox" id="infoBox">
         <span class="chip ok" id="stChip">Hazır</span>
         <span class="chip" id="l1Chip" title="L1">L1:-</span>
@@ -156,11 +170,6 @@
         <span class="chip muted" id="sum" title="Özet">Toplam 0 • ✓0 • ✕0</span>
         <span class="chip muted" id="jsonChip" style="display:none"></span>
       </div>
-
-      <!-- İndir butonları bilgi kutusuna bitişik -->
-      <button id="dl1" disabled>CSV Çıktı</button>
-      <button id="dl2" disabled>Eşleşmeyen CSV</button>
-      <button id="dl3" disabled>JSON Çıktı</button>
     </div>
   </header>
 
@@ -170,7 +179,7 @@
     </div>
   </section>
 
-  <section class="panel unmatched" id="unmatchedSection">
+  <section class="panel unmatched" id="unmatchedSection" style="display:none">
     <div class="tableWrap">
       <table id="t2"></table>
     </div>
