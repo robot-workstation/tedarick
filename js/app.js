@@ -37,9 +37,6 @@ const COLS = [
   "EAN (Compel)","EAN (Sescibaba)","EAN Durumu"
 ];
 
-const NAME_COLS = new Set(["Ürün Adı (Compel)", "Ürün Adı (Sescibaba)"]);
-const NO_CLAMP_COLS = new Set(["Marka","Stok (Compel)","Stok (Sescibaba)","EAN Durumu"]); // explicit
-
 /* ======= Üst bilgi kutusu ======= */
 function setChip(id, text, cls = '') {
   const el = $(id);
@@ -240,58 +237,52 @@ function runMatching() {
   render();
 }
 
-/* ======= Metin kısaltma (SADECE ürün adları) ======= */
-const MAX_NAME = 20;
-function clampName(s) {
-  const v = (s ?? '').toString();
-  if (v.length <= MAX_NAME) return { show: v, full: v };
-  return { show: v.slice(0, Math.max(0, MAX_NAME - 3)) + '...', full: v };
-}
-
-function cellLink(txt, href, isName = false) {
-  const v = (txt ?? '').toString();
+/* ======= Sonuç tablosu: Ürün adları kısıtlanmaz (taşabilir) ======= */
+function cellNameLink(fullText, href) {
+  const v = (fullText ?? '').toString();
   const u = href || '';
-  const t = isName ? clampName(v) : { show: v, full: v };
-  if (!u) return `<span title="${esc(t.full)}">${esc(t.show)}</span>`;
-  return `<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(t.full)}">${esc(t.show)}</a>`;
+  if (!u) return `<span class="nm" title="${esc(v)}">${esc(v)}</span>`;
+  return `<a class="nm" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`;
 }
 
-function renderCompelCell(r) {
-  return cellLink(r["Ürün Adı (Compel)"] ?? '', r._clink || '', true);
-}
-function renderSescibabaCell(r) {
-  return cellLink(r["Ürün Adı (Sescibaba)"] ?? '', r._seo || '', true);
-}
-
-/* ======= Tablo responsive: yüzde kolonlar (sağa-sola kayma yok) ======= */
+/* ======= Tablo responsive: yüzde kolonlar ======= */
 function colGroupPerc(widths) {
   return `<colgroup>${widths.map(w => `<col style="width:${w}%">`).join('')}</colgroup>`;
 }
+
 function dispColName(c) {
-  return (c === "Sıra No") ? "Sıra" : c; // sadece burada kısaltma var
+  return (c === "Sıra No") ? "Sıra" : c;
+}
+
+/* Başlık formatı: (Compel)/(Sescibaba) kısmı küçük + bold değil */
+function formatHeader(label) {
+  const s = (label ?? '').toString();
+  const m = s.match(/^(.*?)(\s*\([^)]*\))\s*$/);
+  if (!m) return esc(s);
+  const main = m[1].trimEnd();
+  const par = m[2].trim();
+  return `<span class="hMain">${esc(main)}</span> <span class="hParen">${esc(par)}</span>`;
 }
 
 function render() {
-  // Başlıklar kısaltılmıyor (Sıra hariç), tamamı ortalı.
-  // EAN kolonları geniş, kayma yok.
-  const W1 = [4,9,15,15,7,7,6,6,6,9,9,7]; // toplam 100
+  // 12 kolon toplam %100
+  const W1 = [4,9,15,15,7,7,6,6,6,9,9,7];
 
   const head1 = COLS.map(c => {
     const label = dispColName(c);
-    return `<th title="${esc(label)}">${esc(label)}</th>`; // header her zaman ortalı
+    return `<th title="${esc(label)}">${formatHeader(label)}</th>`;
   }).join('');
 
   const body1 = R.map((r) => {
     return `<tr>${
       COLS.map(c => {
-        // Ürün adları sola dayalı + clamp
-        if (c === "Ürün Adı (Compel)") return `<td class="left">${renderCompelCell(r)}</td>`;
-        if (c === "Ürün Adı (Sescibaba)") return `<td class="left">${renderSescibabaCell(r)}</td>`;
-
+        if (c === "Ürün Adı (Compel)") {
+          return `<td class="left nameCell">${cellNameLink(r[c], r._clink || '')}</td>`;
+        }
+        if (c === "Ürün Adı (Sescibaba)") {
+          return `<td class="left nameCell">${cellNameLink(r[c], r._seo || '')}</td>`;
+        }
         const v = r[c] ?? '';
-
-        // "Marka / Stok / EAN Durumu" için özel clamp yok (zaten yok).
-        // EAN da clamp yok.
         return `<td title="${esc(v)}">${esc(v)}</td>`;
       }).join('')
     }</tr>`;
@@ -302,7 +293,7 @@ function render() {
     `<thead><tr>${head1}</tr></thead>` +
     `<tbody>${body1}</tbody>`;
 
-  // Unmatched kısmı: yoksa komple gizle + buton gizle
+  // Unmatched kısmı: yoksa gizle + buton gizle
   const sec = $('unmatchedSection');
   const btn2 = $('dl2');
 
@@ -334,7 +325,7 @@ function render() {
         <tr id="u_${i}">
           <td title="${esc(r["Sıra No"])}">${esc(r["Sıra No"])}</td>
           <td title="${esc(r["Marka"])}">${esc(r["Marka"])}</td>
-          <td class="left" title="${esc(r["Ürün Adı (Compel)"])}">${esc(clampName(r["Ürün Adı (Compel)"] || '').show)}</td>
+          <td class="left" title="${esc(r["Ürün Adı (Compel)"])}">${esc(r["Ürün Adı (Compel)"] || '')}</td>
           <td title="${esc(r["Ürün Kodu (Compel)"])}">${esc(r["Ürün Kodu (Compel)"])}</td>
           <td title="${esc(r["EAN (Compel)"])}">${esc(r["EAN (Compel)"])}</td>
           <td><input type="text" list="wsCodes" data-i="${i}" data-f="ws" placeholder="ws"></td>
@@ -414,7 +405,6 @@ async function generate() {
       j ? readFileText(j) : Promise.resolve(null)
     ]);
 
-    // JSON load (yüklü değilse JSON:0 gösterme)
     if (t3) {
       try {
         const p = JSON.parse(t3);
@@ -469,7 +459,6 @@ async function generate() {
     L1 = p1.rows;
     L2all = p2.rows;
 
-    // Marka filtresi (alias’lı)
     const brands = new Set(L1.map(r => B(r[C1.marka] || '')).filter(Boolean));
     L2 = L2all.filter(r => brands.has(B(r[C2.marka] || '')));
 
@@ -517,8 +506,7 @@ $('go').onclick = generate;
 const resetBtn = $('reset');
 if (resetBtn) resetBtn.onclick = () => location.reload();
 
-/* Dosya kutularında isim sabit kalsın: dosya adı yazmayalım, sadece durum değişsin.
-   Dosya adı tooltip (title) olarak kalsın. */
+/* Dosya kutularında isim sabit kalsın; sağ taraf sadece durum göstersin */
 function bindFileStatus(inputId, nameId, emptyText) {
   const inp = $(inputId);
   const out = $(nameId);
@@ -531,7 +519,7 @@ function bindFileStatus(inputId, nameId, emptyText) {
       out.title = emptyText;
     } else {
       out.textContent = 'Seçildi';
-      out.title = f.name; // dosya adı tooltip
+      out.title = f.name;
     }
   };
 
@@ -541,4 +529,4 @@ function bindFileStatus(inputId, nameId, emptyText) {
 
 bindFileStatus('f1','n1','Seçilmedi');
 bindFileStatus('f2','n2','Seçilmedi');
-bindFileStatus('f3','n3','Opsiyonel');
+bindFileStatus('f3','n3','Seçilmedi');
