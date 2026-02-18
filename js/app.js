@@ -69,8 +69,8 @@ function byMap(r1){
 }
 
 /* stok label’ları */
-const compelLbl=raw=>{const s=(raw??'').toString().trim();if(!s)return'';return inStock(s,{source:'compel'})?'Compelde Var':'Compelde Yok'};
-const sesciLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Sescibabada Var':'Sescibabada Yok'):'';
+const compelLbl=raw=>{const s=(raw??'').toString().trim();if(!s)return'';return inStock(s,{source:'compel'})?'Stok Var':'Stok Yok'};
+const sesciLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Stokta Var':'Stokta Yok'):'';
 
 const stokDur=(aRaw,bRaw,ok)=>{if(!ok)return'—';const a=inStock(aRaw,{source:'compel'}),b=inStock(bRaw,{source:'products'});return a===b?'Doğru':'Hatalı'};
 const eanDur=(aRaw,bRaw,ok)=>{
