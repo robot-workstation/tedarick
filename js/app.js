@@ -10,7 +10,6 @@ const $ = (id) => document.getElementById(id);
 
 // Marka alias (Compel -> Products eşleştirme)
 const BRAND_ALIASES = new Map([
-  // senin listende farklı olanlar:
   ['ALLEN & HEATH', 'ALLEN HEATH'],
   ['MARANTZ PROFESSIONAL', 'MARANTZ'],
   ['RUPERT NEVE DESIGNS', 'RUPERT NEVE'],
@@ -29,8 +28,7 @@ let C1 = {}, C2 = {};
 let idxB = new Map(), idxW = new Map(), idxS = new Map();
 let R = [], U = [];
 
-// İstenen kolonlar (Web Servis Kodu kaldırıldı, Tedarikçi->Ürün Kodu (Sescibaba))
-// EAN/Barkod (Sescibaba) -> EAN (Sescibaba) + EAN Durumu eklendi
+// İstenen kolonlar
 const COLS = [
   "Sıra No","Marka",
   "Ürün Adı (Compel)","Ürün Adı (Sescibaba)",
@@ -125,7 +123,7 @@ function findByCompelCodeWs(r1) {
   const r2 = idxW.get(code) || null;
   if (!r2) return null;
 
-  // ekstra güvenlik: marka farklıysa eşleştirmeyi pas geç (marka filtresi çoğu durumda zaten bunu engeller)
+  // marka güvenliği
   const b1 = B(r1[C1.marka] || '');
   const b2 = B(r2[C2.marka] || '');
   if (b1 && b2 && b1 !== b2) return null;
@@ -146,11 +144,10 @@ function findByMap(r1) {
 }
 
 // stok var/yok karşılaştır (products'ta "-" => yok)
-// Ekranda Stok(Sescibaba) artık "Stokta Var/Yok" yazacağı için karşılaştırmayı ham değerle yapıyoruz.
 function stokDurumu(compelStokRaw, prodStokRaw, matched) {
   if (!matched) return '—';
   const a = inStock(compelStokRaw, { source: 'compel' });
-  const b = inStock(prodStokRaw, { source: 'products' }); // products: "-" => stok yok
+  const b = inStock(prodStokRaw, { source: 'products' });
   return (a === b) ? 'Doğru' : 'Hatalı';
 }
 
@@ -224,60 +221,72 @@ function runMatching() {
   render();
 }
 
+/* ==== Tek satır + ellipsis için cell render ==== */
+function cellSpan(txt) {
+  const v = (txt ?? '').toString();
+  return `<span title="${esc(v)}">${esc(v)}</span>`;
+}
+function cellLink(txt, href) {
+  const v = (txt ?? '').toString();
+  const u = href || '';
+  if (!u) return cellSpan(v);
+  return `<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`;
+}
+
 function renderCompelCell(r) {
-  const name = r["Ürün Adı (Compel)"] ?? '';
-  const link = r._clink || '';
-  if (!link) return esc(name);
-  return `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(name)}</a>`;
+  return cellLink(r["Ürün Adı (Compel)"] ?? '', r._clink || '');
 }
-
 function renderSescibabaCell(r) {
-  const name = r["Ürün Adı (Sescibaba)"] ?? '';
-  const seo = r._seo || '';
-  if (!seo) return esc(name);
-  return `<a href="${esc(seo)}" target="_blank" rel="noopener" title="${esc(seo)}">${esc(name)}</a>`;
+  return cellLink(r["Ürün Adı (Sescibaba)"] ?? '', r._seo || '');
 }
 
-function isNameCol(c) {
-  return c === "Ürün Adı (Compel)" || c === "Ürün Adı (Sescibaba)";
+function colGroup(widths) {
+  return `<colgroup>${widths.map(w => `<col style="width:${w}px">`).join('')}</colgroup>`;
 }
 
 function render() {
-  // Results table
+  // sıkı, veri-tasarruflu kolon genişlikleri
+  const W1 = [54,110,260,260,130,130,90,100,90,150,150,90];
+
   $('t1').innerHTML =
-    `<thead><tr>${
-      COLS.map(c => {
-        const align = isNameCol(c) ? 'left' : 'center';
-        return `<th style="text-align:${align}">${esc(c)}</th>`;
-      }).join('')
-    }</tr></thead>` +
+    colGroup(W1) +
+    `<thead><tr>${COLS.map(c => `<th title="${esc(c)}">${esc(c)}</th>`).join('')}</tr></thead>` +
     `<tbody>${
       R.map((r)=>{
         return `<tr>${
           COLS.map(c=>{
-            const align = isNameCol(c) ? 'left' : 'center';
-            if (c === "Ürün Adı (Compel)") return `<td style="text-align:${align}">${renderCompelCell(r)}</td>`;
-            if (c === "Ürün Adı (Sescibaba)") return `<td style="text-align:${align}">${renderSescibabaCell(r)}</td>`;
+            if (c === "Ürün Adı (Compel)") return `<td>${renderCompelCell(r)}</td>`;
+            if (c === "Ürün Adı (Sescibaba)") return `<td>${renderSescibabaCell(r)}</td>`;
             const v = r[c] ?? '';
-            return `<td style="text-align:${align}">${esc(v)}</td>`;
+            return `<td title="${esc(v)}">${esc(v)}</td>`;
           }).join('')
         }</tr>`;
       }).join('')
     }</tbody>`;
 
-  // Unmatched table (manuel eşleştirme alanı aynı kalsın)
+  // Unmatched table
+  const cols2 = ["Sıra No","Marka","Ürün Adı (Compel)","Ürün Kodu (Compel)","EAN (Compel)"];
+  const W2 = [54,110,260,130,150,120,120,96];
+
   $('t2').innerHTML =
+    colGroup(W2) +
     `<thead><tr>
-      <th>Sıra No</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>EAN</th>
-      <th>Web Servis</th><th>Tedarikçi</th><th></th>
+      <th title="Sıra No">Sıra No</th>
+      <th title="Marka">Marka</th>
+      <th title="Ürün Adı">Ürün Adı</th>
+      <th title="Ürün Kodu">Ürün Kodu</th>
+      <th title="EAN">EAN</th>
+      <th title="Web Servis">Web Servis</th>
+      <th title="Tedarikçi">Tedarikçi</th>
+      <th title=""></th>
     </tr></thead>` +
     `<tbody>${U.map((r,i)=>`
       <tr id="u_${i}">
-        <td>${esc(r["Sıra No"])}</td>
-        <td>${esc(r["Marka"])}</td>
-        <td>${esc(r["Ürün Adı (Compel)"])}</td>
-        <td>${esc(r["Ürün Kodu (Compel)"])}</td>
-        <td>${esc(r["EAN (Compel)"])}</td>
+        <td title="${esc(r["Sıra No"])}">${esc(r["Sıra No"])}</td>
+        <td title="${esc(r["Marka"])}">${esc(r["Marka"])}</td>
+        <td title="${esc(r["Ürün Adı (Compel)"])}">${esc(r["Ürün Adı (Compel)"])}</td>
+        <td title="${esc(r["Ürün Kodu (Compel)"])}">${esc(r["Ürün Kodu (Compel)"])}</td>
+        <td title="${esc(r["EAN (Compel)"])}">${esc(r["EAN (Compel)"])}</td>
         <td><input type="text" list="wsCodes" data-i="${i}" data-f="ws" placeholder="ws"></td>
         <td><input type="text" list="supCodes" data-i="${i}" data-f="sup" placeholder="sup"></td>
         <td><button class="mx" data-i="${i}">Eşleştir</button></td>
@@ -286,7 +295,7 @@ function render() {
   $('t2').querySelectorAll('.mx').forEach(b => b.onclick = () => manualMatch(+b.dataset.i));
 
   const matched = R.filter(x => x._m).length;
-  $('sum').textContent = `(Toplam: ${R.length} • Eşleşen: ${matched} • Eşleşmeyen: ${R.length - matched})`;
+  $('sum').textContent = `Toplam ${R.length} • ✓${matched} • ✕${R.length - matched}`;
 
   $('dl1').disabled = !R.length;
   $('dl2').disabled = !U.length;
@@ -339,7 +348,7 @@ async function generate() {
   const a = $('f1').files[0], b = $('f2').files[0], j = $('f3').files[0];
   if (!a || !b) return alert('Lütfen 1) ve 2) CSV dosyalarını seç.');
 
-  setStatus('<small>Okunuyor…</small>');
+  setStatus(`<span class="chip unk">Okunuyor…</span>`);
 
   try {
     const [t1, t2, t3] = await Promise.all([readFileText(a), readFileText(b), j ? readFileText(j) : Promise.resolve(null)]);
@@ -388,7 +397,8 @@ async function generate() {
     const m1 = need(C1, ['siraNo','marka','urunAdi','urunKodu','stok','ean','link']);
     const m2 = need(C2, ['ws','sup','barkod','stok','marka','urunAdi','seo']);
     if (m1.length || m2.length) {
-      return setStatus(`<small style="color:#c33">Sütun bulunamadı. L1: ${m1.join(', ')} • L2: ${m2.join(', ')}</small>`);
+      setStatus(`<span class="chip bad">Sütun eksik</span><span class="chip muted">L1: ${esc(m1.join(', ')) || 'ok'}</span><span class="chip muted">L2: ${esc(m2.join(', ')) || 'ok'}</span>`);
+      return;
     }
 
     L1 = p1.rows;
@@ -401,10 +411,17 @@ async function generate() {
     buildIndices();
     runMatching();
 
-    setStatus(`<small>Hazır. L1:${L1.length} • L2(filtreli):${L2.length}/${L2all.length} • JSON:${Object.keys(map.mappings||{}).length}</small>`);
+    setStatus(
+      `<span class="chip ok">Hazır</span>` +
+      `<span class="chip">L1:${L1.length}</span>` +
+      `<span class="chip">L2:${L2.length}/${L2all.length}</span>` +
+      `<span class="chip">JSON:${Object.keys(map.mappings||{}).length}</span>` +
+      `<span class="chip muted">Alias: Allen &amp; Heath → Allen Heath</span>` +
+      `<span class="chip muted">products stok “-” = yok</span>`
+    );
   } catch (e) {
     console.error(e);
-    setStatus('<small style="color:#c33">Hata oluştu (konsola bak).</small>');
+    setStatus(`<span class="chip bad">Hata (konsola bak)</span>`);
   }
 }
 
@@ -427,6 +444,23 @@ $('dl3').onclick = () => {
 
 $('go').onclick = generate;
 
-// ✅ YENİ: Temizle butonu (sayfa yenilenmiş gibi her şeyi sıfırlar)
+// ✅ Temizle
 const resetBtn = $('reset');
 if (resetBtn) resetBtn.onclick = () => location.reload();
+
+/* ✅ Dosya adlarını üstte tek satırda göster */
+function bindFileName(inputId, nameId, emptyText) {
+  const inp = $(inputId);
+  const out = $(nameId);
+  if (!inp || !out) return;
+  const upd = () => {
+    const n = inp.files?.[0]?.name || emptyText;
+    out.textContent = n;
+    out.title = n;
+  };
+  inp.addEventListener('change', upd);
+  upd();
+}
+bindFileName('f1','n1','Seçilmedi');
+bindFileName('f2','n2','Seçilmedi');
+bindFileName('f3','n3','Opsiyonel');
