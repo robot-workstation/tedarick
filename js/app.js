@@ -117,6 +117,22 @@ function findByEan(r1) {
   return null;
 }
 
+// ✅ YENİ: EAN eşleşmezse 2. adım olarak Compel Ürün Kodu -> Sescibaba Web Servis Kodu dene
+function findByCompelCodeWs(r1) {
+  const code = T(r1[C1.urunKodu] || '');
+  if (!code) return null;
+
+  const r2 = idxW.get(code) || null;
+  if (!r2) return null;
+
+  // ekstra güvenlik: marka farklıysa eşleştirmeyi pas geç (marka filtresi çoğu durumda zaten bunu engeller)
+  const b1 = B(r1[C1.marka] || '');
+  const b2 = B(r2[C2.marka] || '');
+  if (b1 && b2 && b1 !== b2) return null;
+
+  return r2;
+}
+
 function findByMap(r1) {
   const m = map.mappings || {};
   const ent = m[kNew(r1)] ?? m[kOld(r1)];
@@ -192,8 +208,15 @@ function outRow(r1, r2, how) {
 function runMatching() {
   R = []; U = [];
   for (const r1 of L1) {
+    // 1) EAN
     let r2 = findByEan(r1), how = r2 ? 'EAN' : '';
+
+    // 2) Compel Ürün Kodu -> Sescibaba Web Servis Kodu
+    if (!r2) { r2 = findByCompelCodeWs(r1); if (r2) how = 'KOD'; }
+
+    // 3) JSON mapping
     if (!r2) { r2 = findByMap(r1); if (r2) how = 'JSON'; }
+
     const row = outRow(r1, r2, how);
     R.push(row);
     if (!row._m) U.push(row);
@@ -403,3 +426,7 @@ $('dl3').onclick = () => {
 };
 
 $('go').onclick = generate;
+
+// ✅ YENİ: Temizle butonu (sayfa yenilenmiş gibi her şeyi sıfırlar)
+const resetBtn = $('reset');
+if (resetBtn) resetBtn.onclick = () => location.reload();
