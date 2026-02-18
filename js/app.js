@@ -28,7 +28,7 @@ let C1 = {}, C2 = {};
 let idxB = new Map(), idxW = new Map(), idxS = new Map();
 let R = [], U = [];
 
-// İstenen kolonlar
+// CSV kolon anahtarları (değişmiyor)
 const COLS = [
   "Sıra No","Marka",
   "Ürün Adı (Compel)","Ürün Adı (Sescibaba)",
@@ -37,8 +37,10 @@ const COLS = [
   "EAN (Compel)","EAN (Sescibaba)","EAN Durumu"
 ];
 
-/* ======= Üst bilgi kutusu yardımcıları ======= */
-function setChip(id, text, cls) {
+const NAME_COLS = new Set(["Ürün Adı (Compel)", "Ürün Adı (Sescibaba)"]);
+
+/* ======= Üst bilgi kutusu ======= */
+function setChip(id, text, cls = '') {
   const el = $(id);
   if (!el) return;
   el.textContent = text;
@@ -51,7 +53,7 @@ function setChipVisible(id, visible) {
   el.style.display = visible ? '' : 'none';
 }
 function setStatus(label, kind = 'ok') {
-  setChip('stChip', label, kind); // kind: ok / bad / unk / muted
+  setChip('stChip', label, kind);
 }
 
 /* ======= URL güvenliği ======= */
@@ -237,18 +239,12 @@ function runMatching() {
   render();
 }
 
-/* ======= Metin kısaltma (özellikle ürün adları) ======= */
+/* ======= Metin kısaltma (sadece ürün adları) ======= */
 const MAX_NAME = 20;
 function clampName(s) {
   const v = (s ?? '').toString();
   if (v.length <= MAX_NAME) return { show: v, full: v };
   return { show: v.slice(0, Math.max(0, MAX_NAME - 3)) + '...', full: v };
-}
-
-function cellSpan(txt, isName = false) {
-  const v = (txt ?? '').toString();
-  const t = isName ? clampName(v) : { show: v, full: v };
-  return `<span title="${esc(t.full)}">${esc(t.show)}</span>`;
 }
 
 function cellLink(txt, href, isName = false) {
@@ -270,63 +266,89 @@ function renderSescibabaCell(r) {
 function colGroupPerc(widths) {
   return `<colgroup>${widths.map(w => `<col style="width:${w}%">`).join('')}</colgroup>`;
 }
+function dispColName(c) {
+  return (c === "Sıra No") ? "Sıra" : c;
+}
 
 function render() {
-  // 12 kolon toplam %100
-  const W1 = [4,8,17,17,8,8,6,6,6,7,7,6];
+  // 12 kolon toplam %100 (EAN’lara daha geniş alan)
+  const W1 = [4,8,16,16,7,7,5,6,5,9,9,8];
+
+  const head1 = COLS.map(c => {
+    const label = dispColName(c);
+    const cls = NAME_COLS.has(c) ? 'left' : '';
+    return `<th class="${cls}" title="${esc(label)}">${esc(label)}</th>`;
+  }).join('');
+
+  const body1 = R.map((r) => {
+    return `<tr>${
+      COLS.map(c => {
+        const cls = NAME_COLS.has(c) ? 'left' : '';
+        if (c === "Ürün Adı (Compel)") return `<td class="${cls}">${renderCompelCell(r)}</td>`;
+        if (c === "Ürün Adı (Sescibaba)") return `<td class="${cls}">${renderSescibabaCell(r)}</td>`;
+        const v = r[c] ?? '';
+        // EAN kısaltma yok (sadece normal ellipsis olabilir, ama özel clamp uygulanmıyor)
+        return `<td class="${cls}" title="${esc(v)}">${esc(v)}</td>`;
+      }).join('')
+    }</tr>`;
+  }).join('');
 
   $('t1').innerHTML =
     colGroupPerc(W1) +
-    `<thead><tr>${COLS.map(c => `<th title="${esc(c)}">${esc(c)}</th>`).join('')}</tr></thead>` +
-    `<tbody>${
-      R.map((r)=>{
-        return `<tr>${
-          COLS.map(c=>{
-            if (c === "Ürün Adı (Compel)") return `<td>${renderCompelCell(r)}</td>`;
-            if (c === "Ürün Adı (Sescibaba)") return `<td>${renderSescibabaCell(r)}</td>`;
-            const v = r[c] ?? '';
-            return `<td title="${esc(v)}">${esc(v)}</td>`;
-          }).join('')
-        }</tr>`;
-      }).join('')
-    }</tbody>`;
+    `<thead><tr>${head1}</tr></thead>` +
+    `<tbody>${body1}</tbody>`;
 
-  // Unmatched table (8 kolon %100)
-  const W2 = [6,10,26,12,16,12,12,6];
+  // Unmatched kısmı: yoksa komple gizle
+  const sec = $('unmatchedSection');
+  const btn2 = $('dl2');
 
-  $('t2').innerHTML =
-    colGroupPerc(W2) +
-    `<thead><tr>
-      <th title="Sıra No">Sıra</th>
-      <th title="Marka">Marka</th>
-      <th title="Ürün Adı">Ürün Adı</th>
-      <th title="Ürün Kodu">Kodu</th>
-      <th title="EAN">EAN</th>
-      <th title="Web Servis">WS</th>
-      <th title="Tedarikçi">SUP</th>
-      <th title=""></th>
-    </tr></thead>` +
-    `<tbody>${U.map((r,i)=>`
-      <tr id="u_${i}">
-        <td title="${esc(r["Sıra No"])}">${esc(r["Sıra No"])}</td>
-        <td title="${esc(r["Marka"])}">${esc(r["Marka"])}</td>
-        <td title="${esc(r["Ürün Adı (Compel)"])}">${esc(clampName(r["Ürün Adı (Compel)"] || '').show)}</td>
-        <td title="${esc(r["Ürün Kodu (Compel)"])}">${esc(r["Ürün Kodu (Compel)"])}</td>
-        <td title="${esc(r["EAN (Compel)"])}">${esc(r["EAN (Compel)"])}</td>
-        <td><input type="text" list="wsCodes" data-i="${i}" data-f="ws" placeholder="ws"></td>
-        <td><input type="text" list="supCodes" data-i="${i}" data-f="sup" placeholder="sup"></td>
-        <td><button class="mx" data-i="${i}">Eşleştir</button></td>
-      </tr>`).join('')}</tbody>`;
+  if (!U.length) {
+    if (sec) sec.style.display = 'none';
+    if (btn2) btn2.style.display = 'none';
+  } else {
+    if (sec) sec.style.display = '';
+    if (btn2) btn2.style.display = '';
+  }
 
-  $('t2').querySelectorAll('.mx').forEach(b => b.onclick = () => manualMatch(+b.dataset.i));
+  if (U.length) {
+    // Unmatched table (8 kolon %100)
+    const W2 = [6,10,28,12,18,10,10,6];
+
+    $('t2').innerHTML =
+      colGroupPerc(W2) +
+      `<thead><tr>
+        <th title="Sıra">Sıra</th>
+        <th title="Marka">Marka</th>
+        <th class="left" title="Ürün Adı">Ürün Adı</th>
+        <th title="Ürün Kodu">Kodu</th>
+        <th title="EAN">EAN</th>
+        <th title="Web Servis">WS</th>
+        <th title="Tedarikçi">SUP</th>
+        <th title=""></th>
+      </tr></thead>` +
+      `<tbody>${U.map((r,i)=>`
+        <tr id="u_${i}">
+          <td title="${esc(r["Sıra No"])}">${esc(r["Sıra No"])}</td>
+          <td title="${esc(r["Marka"])}">${esc(r["Marka"])}</td>
+          <td class="left" title="${esc(r["Ürün Adı (Compel)"])}">${esc(clampName(r["Ürün Adı (Compel)"] || '').show)}</td>
+          <td title="${esc(r["Ürün Kodu (Compel)"])}">${esc(r["Ürün Kodu (Compel)"])}</td>
+          <td title="${esc(r["EAN (Compel)"])}">${esc(r["EAN (Compel)"])}</td>
+          <td><input type="text" list="wsCodes" data-i="${i}" data-f="ws" placeholder="ws"></td>
+          <td><input type="text" list="supCodes" data-i="${i}" data-f="sup" placeholder="sup"></td>
+          <td><button class="mx" data-i="${i}">Eşleştir</button></td>
+        </tr>`).join('')}</tbody>`;
+
+    $('t2').querySelectorAll('.mx').forEach(b => b.onclick = () => manualMatch(+b.dataset.i));
+  }
 
   const matched = R.filter(x => x._m).length;
   const sumText = `Toplam ${R.length} • ✓${matched} • ✕${R.length - matched}`;
   setChip('sum', sumText, 'muted');
 
+  // İndir butonları
   $('dl1').disabled = !R.length;
-  $('dl2').disabled = !U.length;
   $('dl3').disabled = false;
+  if ($('dl2')) $('dl2').disabled = !U.length;
 }
 
 function manualMatch(i) {
@@ -376,8 +398,8 @@ async function generate() {
   if (!a || !b) return alert('Lütfen 1) ve 2) CSV dosyalarını seç.');
 
   setStatus('Okunuyor…', 'unk');
-  setChip('l1Chip', 'L1:—', '');
-  setChip('l2Chip', 'L2:—', '');
+  setChip('l1Chip', 'L1:—');
+  setChip('l2Chip', 'L2:—');
   setChipVisible('jsonChip', false);
 
   let jsonLoaded = false;
@@ -452,8 +474,8 @@ async function generate() {
     runMatching();
 
     setStatus('Hazır', 'ok');
-    setChip('l1Chip', `L1:${L1.length}`, '');
-    setChip('l2Chip', `L2:${L2.length}/${L2all.length}`, '');
+    setChip('l1Chip', `L1:${L1.length}`);
+    setChip('l2Chip', `L2:${L2.length}/${L2all.length}`);
 
     if (jsonLoaded) {
       const n = Object.keys(map.mappings||{}).length;
