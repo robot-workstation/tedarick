@@ -28,29 +28,24 @@ button:disabled{opacity:.55;cursor:not-allowed}button:disabled:hover{background:
 /* ✅ tablo sayfaya sığar */
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 
-/* Gövde tek satır */
 th,td{border-bottom:1px solid #1f2430;padding:9px 6px;text-align:center;vertical-align:middle;font-size:14px;line-height:1.1}
 td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ✅ BAŞLIKLAR: karakter kısıtlaması yok + üst üste binmez + kayma yok
-   => başlıklar satır kırarak sığar (wrap) */
-th{
-  position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;
-  white-space:normal;           /* wrap */
-  overflow:hidden;              /* taşmayı kes (overlap olmasın) */
-  text-overflow:clip;           /* ... yok */
-  overflow-wrap:anywhere;       /* uzun kelimeler de kırılabilsin */
-  word-break:break-word;
-  padding:7px 6px;              /* biraz kompakt */
-}
-
+/* ✅ başlıklar: tek satır + kesme yok + üst üste gelmez (JS scaleX ile sığdıracağız) */
+th{position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;white-space:nowrap;overflow:hidden;text-overflow:clip;padding:7px 6px}
+thead tr:hover{background:inherit}
 tbody tr:hover{background:#111827}
-.left{text-align:left!important}
 
+.left{text-align:left!important}
 .hMain{font-weight:1100}
 .hParen{font-size:12px;font-weight:400;opacity:.9}
 
+/* ✅ başlık metni: scale için */
+.hTxt{display:inline-block;white-space:nowrap;transform-origin:left center;will-change:transform}
+
+/* satır içi metin */
 .cellTxt{display:inline-block}
+
 td.nameCell{overflow:visible;text-overflow:clip;position:relative;z-index:1}
 td.nameCell .nm{display:inline-block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:9999px;position:relative;z-index:3}
 td.eanCell{overflow:visible;text-overflow:clip}
