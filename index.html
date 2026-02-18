@@ -22,23 +22,30 @@ button:disabled{opacity:.55;cursor:not-allowed}button:disabled:hover{background:
 .panel{padding:8px;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .results{flex:2 1 0}.unmatched{flex:1 1 0}
 
-/* yatay kayma yok */
+/* ✅ yatay kayma yok */
 .tableWrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
+
+/* ✅ tablo sayfaya sığar */
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 
 th,td{border-bottom:1px solid #1f2430;padding:9px 6px;text-align:center;vertical-align:middle;font-size:14px;line-height:1.1}
 td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* başlıklar tek satır + kesme yok; JS scaleX ile sığdırıyoruz */
+/* ✅ başlıklar: tek satır + kesme yok + üst üste gelmez (JS scaleX ile sığdıracağız) */
 th{position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;white-space:nowrap;overflow:hidden;text-overflow:clip;padding:7px 6px}
-.hTxt{display:inline-block;white-space:nowrap;transform-origin:left center;will-change:transform}
-
+thead tr:hover{background:inherit}
 tbody tr:hover{background:#111827}
+
 .left{text-align:left!important}
 .hMain{font-weight:1100}
 .hParen{font-size:12px;font-weight:400;opacity:.9}
 
+/* ✅ başlık metni: scale için */
+.hTxt{display:inline-block;white-space:nowrap;transform-origin:left center;will-change:transform}
+
+/* satır içi metin */
 .cellTxt{display:inline-block}
+
 td.nameCell{overflow:visible;text-overflow:clip;position:relative;z-index:1}
 td.nameCell .nm{display:inline-block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:9999px;position:relative;z-index:3}
 td.eanCell{overflow:visible;text-overflow:clip}
@@ -56,15 +63,14 @@ input[type=text]:focus{outline:none;border-color:#6b7da6}
 <main>
   <header class="topbar">
     <div class="controls">
-      <label class="file" title="Compel Sonuç (CSV)"><span class="fbtn">Compel Sonuç</span><span class="fname" id="n1">Yükle</span><input id="f1" type="file" accept=".csv,text/csv"></label>
-      <label class="file" title="Sescibaba Stok (CSV)"><span class="fbtn">Sescibaba Stok</span><span class="fname" id="n2">Yükle</span><input id="f2" type="file" accept=".csv,text/csv"></label>
-      <label class="file" title="Depo Stok Yükle (CSV)"><span class="fbtn">Depo Stok Yükle</span><span class="fname" id="n4">Yükle</span><input id="f4" type="file" accept=".csv,text/csv"></label>
-      <label class="file" title="JSON Map"><span class="fbtn">JSON Map</span><span class="fname" id="n3">Yükle</span><input id="f3" type="file" accept=".json,application/json"></label>
+      <label class="file" title="Compel Sonuç (CSV)"><span class="fbtn">Compel Sonuç</span><span class="fname" id="n1">Seçilmedi</span><input id="f1" type="file" accept=".csv,text/csv"></label>
+      <label class="file" title="Sescibaba Stok (CSV)"><span class="fbtn">Sescibaba Stok</span><span class="fname" id="n2">Seçilmedi</span><input id="f2" type="file" accept=".csv,text/csv"></label>
+      <label class="file" title="JSON Map (opsiyonel)"><span class="fbtn">JSON Map</span><span class="fname" id="n3">Seçilmedi</span><input id="f3" type="file" accept=".json,application/json"></label>
 
       <span class="sep"></span>
 
-      <!-- ✅ Tek buton: Listele → Temizle -->
-      <button id="go" title="Listele">Listele</button>
+      <button id="go">Listele</button>
+      <button id="reset" title="Her şeyi sıfırla">Temizle</button>
 
       <span class="sepSm"></span>
 
