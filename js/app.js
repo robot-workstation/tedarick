@@ -68,13 +68,13 @@ function byMap(r1){
   return(ws&&idxW.get(ws))||(sup&&idxS.get(sup))||null
 }
 
-/* ✅ Yeni stok label’ları */
+/* ✅ İstenen yeni stok label’ları: "Stokta Var / Stokta Yok" */
 const compelLbl=raw=>{
   const s=(raw??'').toString().trim();
   if(!s)return'';
-  return inStock(s,{source:'compel'})?'Compelde Var':'Compelde Yok'
+  return inStock(s,{source:'compel'})?'Stokta Var':'Stokta Yok'
 };
-const sesciLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Sescibabada Var':'Sescibabada Yok'):'';
+const sesciLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Stokta Var':'Stokta Yok'):'';
 
 const stokDur=(aRaw,bRaw,ok)=>{if(!ok)return'—';const a=inStock(aRaw,{source:'compel'}),b=inStock(bRaw,{source:'products'});return a===b?'Doğru':'Hatalı'};
 const eanDur=(aRaw,bRaw,ok)=>{
@@ -94,12 +94,16 @@ function outRow(r1,r2,how){
     "Ürün Adı (Compel)":T(r1[C1.urunAdi]||''),"Ürün Adı (Sescibaba)":r2?T(r2[C2.urunAdi]||''):'',
     "Ürün Kodu (Compel)":T(r1[C1.urunKodu]||''),"Ürün Kodu (Sescibaba)":sup,
 
-    /* ✅ İstenen metinler */
+    /* ✅ Yeni metinler */
     "Stok (Compel)":compelLbl(s1raw),
     "Stok (Sescibaba)":sesciLbl(s2raw,!!r2),
     "Stok Durumu":stokDur(s1raw,s2raw,!!r2),
 
     "EAN (Compel)":T(r1[C1.ean]||''),"EAN (Sescibaba)":bark,"EAN Durumu":eanDur(r1[C1.ean]||'',bark,!!r2),
+
+    /* ham stokları sakla (manuel eşleştirmede bozulmasın) */
+    _s1raw:s1raw,_s2raw:s2raw,
+
     _m:!!r2,_how:r2?how:'',_k:kNew(r1),_bn:B(r1[C1.marka]||''),_seo:seoAbs,_clink:clink
   }
 }
@@ -217,7 +221,7 @@ function manual(i){
 
   const idx=R.findIndex(x=>x._k===r._k);
   if(idx>=0){
-    const stub={[C1.siraNo]:r["Sıra No"],[C1.marka]:r["Marka"],[C1.urunAdi]:r["Ürün Adı (Compel)"],[C1.urunKodu]:r["Ürün Kodu (Compel)"],[C1.stok]:r["Stok (Compel)"],[C1.ean]:r["EAN (Compel)"],[C1.link]:r._clink||''};
+    const stub={[C1.siraNo]:r["Sıra No"],[C1.marka]:r["Marka"],[C1.urunAdi]:r["Ürün Adı (Compel)"],[C1.urunKodu]:r["Ürün Kodu (Compel)"],[C1.stok]:r._s1raw||'', [C1.ean]:r["EAN (Compel)"],[C1.link]:r._clink||''};
     R[idx]=outRow(stub,r2,'MANUAL');R[idx]._k=r._k;R[idx]._bn=b1
   }
   U.splice(i,1);render()
@@ -269,7 +273,10 @@ $('dl2').onclick=()=>{const cols=["Sıra No","Marka","Ürün Adı (Compel)","Ür
 $('dl3').onclick=()=>{map.meta=map.meta||{};map.meta.updatedAt=nowISO();downloadBlob('mapping.json',new Blob([JSON.stringify(map,null,2)],{type:'application/json;charset=utf-8'}))};
 
 $('go').onclick=generate;
-$('reset').onclick=()=>location.reload();
+
+/* reset butonu yoksa hata verme */
+const _r=$('reset');
+if(_r)_r.onclick=()=>location.reload();
 
 /* ✅ Yükleme kutularında “Yükle” yazsın */
 const bind=(inId,outId,empty)=>{
