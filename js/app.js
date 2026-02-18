@@ -1,4 +1,3 @@
-
 import{TR,esc,T,D,nowISO,parseDelimited,pickColumn,downloadBlob,toCSV,readFileText,inStock}from'./utils.js';
 const $=id=>document.getElementById(id);
 
@@ -69,8 +68,15 @@ function byMap(r1){
   return(ws&&idxW.get(ws))||(sup&&idxS.get(sup))||null
 }
 
+/* ✅ Yeni stok label’ları */
+const compelLbl=raw=>{
+  const s=(raw??'').toString().trim();
+  if(!s)return'';
+  return inStock(s,{source:'compel'})?'Compelde Var':'Compelde Yok'
+};
+const sesciLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Sescibabada Var':'Sescibabada Yok'):'';
+
 const stokDur=(aRaw,bRaw,ok)=>{if(!ok)return'—';const a=inStock(aRaw,{source:'compel'}),b=inStock(bRaw,{source:'products'});return a===b?'Doğru':'Hatalı'};
-const stokLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Stokta Var':'Stokta Yok'):'';
 const eanDur=(aRaw,bRaw,ok)=>{
   if(!ok)return'—';
   const a=new Set(eans(aRaw||'')),b=eans(bRaw||'');
@@ -80,14 +86,19 @@ const eanDur=(aRaw,bRaw,ok)=>{
 };
 
 function outRow(r1,r2,how){
-  const s1=T(r1[C1.stok]||''),s2raw=r2?T(r2[C2.stok]||''):'';
+  const s1raw=T(r1[C1.stok]||''),s2raw=r2?T(r2[C2.stok]||''):'';
   const sup=r2?T(r2[C2.sup]||''):'',bark=r2?T(r2[C2.barkod]||''):'';
   const seoAbs=r2?safeUrl(normSeo(r2[C2.seo]||'')):'',clink=safeUrl(r1[C1.link]||'');
   return{
     "Sıra No":T(r1[C1.siraNo]||''),"Marka":T(r1[C1.marka]||''),
     "Ürün Adı (Compel)":T(r1[C1.urunAdi]||''),"Ürün Adı (Sescibaba)":r2?T(r2[C2.urunAdi]||''):'',
     "Ürün Kodu (Compel)":T(r1[C1.urunKodu]||''),"Ürün Kodu (Sescibaba)":sup,
-    "Stok (Compel)":s1,"Stok (Sescibaba)":stokLbl(s2raw,!!r2),"Stok Durumu":stokDur(s1,s2raw,!!r2),
+
+    /* ✅ İstenen metinler */
+    "Stok (Compel)":compelLbl(s1raw),
+    "Stok (Sescibaba)":sesciLbl(s2raw,!!r2),
+    "Stok Durumu":stokDur(s1raw,s2raw,!!r2),
+
     "EAN (Compel)":T(r1[C1.ean]||''),"EAN (Sescibaba)":bark,"EAN Durumu":eanDur(r1[C1.ean]||'',bark,!!r2),
     _m:!!r2,_how:r2?how:'',_k:kNew(r1),_bn:B(r1[C1.marka]||''),_seo:seoAbs,_clink:clink
   }
@@ -107,11 +118,27 @@ function runMatch(){
 const cellName=(txt,href)=>{const v=(txt??'').toString(),u=href||'';return u?`<a class="nm" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`:`<span class="nm" title="${esc(v)}">${esc(v)}</span>`};
 
 let _raf=0,_bound=false;
-const sched=()=>{if(_raf)cancelAnimationFrame(_raf);_raf=requestAnimationFrame(adjustNames)};
+const sched=()=>{if(_raf)cancelAnimationFrame(_raf);_raf=requestAnimationFrame(adjustLayout)};
 const firstEl=td=>td?.querySelector('.cellTxt,.nm,input,button')||null;
 
-function adjustNames(){
+/* ✅ Başlıkları tek satır + kesmeden + çakışmadan sığdır */
+function fitHeaderText(tableId){
+  const t=$(tableId);if(!t)return;
+  const ths=t.querySelectorAll('thead th');
+  for(const th of ths){
+    const sp=th.querySelector('.hTxt');if(!sp)continue;
+    sp.style.transform='scaleX(1)';
+    const avail=Math.max(10,th.clientWidth-2);
+    const need=sp.scrollWidth||0;
+    const s=need>avail?(avail/need):1;
+    sp.style.transform=`scaleX(${s})`;
+  }
+}
+
+function adjustLayout(){
   _raf=0;
+  fitHeaderText('t1');fitHeaderText('t2');
+
   const t=$('t1');if(!t)return;
   const rows=t.querySelectorAll('tbody tr'),G=6;
   for(const tr of rows){
@@ -133,9 +160,8 @@ function adjustNames(){
 }
 
 function render(){
-  /* ✅ tablonun daralıp sığması için sabit % kolonlar */
   const W1=[4,9,15,15,7,7,6,6,6,9,9,7];
-  const head=COLS.map(c=>{const l=disp(c);return`<th title="${esc(l)}">${fmtHdr(l)}</th>`}).join('');
+  const head=COLS.map(c=>{const l=disp(c);return`<th title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`}).join('');
   const body=R.map(r=>`<tr>${COLS.map((c,idx)=>{
     const v=r[c]??'';
     if(c==="Ürün Adı (Compel)")return`<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
@@ -150,7 +176,11 @@ function render(){
   if(!U.length){sec.style.display='none';btn2.style.display='none'}else{sec.style.display='';btn2.style.display=''}
   if(U.length){
     const W2=[6,10,28,12,18,10,10,6];
-    $('t2').innerHTML=colGrp(W2)+`<thead><tr><th>Sıra</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>EAN</th><th>Web Servis</th><th>Tedarikçi</th><th></th></tr></thead><tbody>`+
+    $('t2').innerHTML=colGrp(W2)+`<thead><tr>
+      <th><span class="hTxt">Sıra</span></th><th><span class="hTxt">Marka</span></th><th><span class="hTxt">Ürün Adı</span></th>
+      <th><span class="hTxt">Ürün Kodu</span></th><th><span class="hTxt">EAN</span></th><th><span class="hTxt">Web Servis</span></th>
+      <th><span class="hTxt">Tedarikçi</span></th><th></th>
+    </tr></thead><tbody>`+
       U.map((r,i)=>`<tr id="u_${i}">
         <td class="seqCell" title="${esc(r["Sıra No"])}"><span class="cellTxt">${esc(r["Sıra No"])}</span></td>
         <td title="${esc(r["Marka"])}"><span class="cellTxt">${esc(r["Marka"])}</span></td>
@@ -167,6 +197,7 @@ function render(){
   const matched=R.filter(x=>x._m).length;
   setChip('sum',`Toplam ${R.length} • ✓${matched} • ✕${R.length-matched}`,'muted');
   $('dl1').disabled=!R.length;$('dl3').disabled=false;if(btn2)btn2.disabled=!U.length;
+
   sched()
 }
 
@@ -240,9 +271,13 @@ $('dl3').onclick=()=>{map.meta=map.meta||{};map.meta.updatedAt=nowISO();download
 $('go').onclick=generate;
 $('reset').onclick=()=>location.reload();
 
+/* ✅ Yükleme kutularında “Yükle” yazsın */
 const bind=(inId,outId,empty)=>{
   const inp=$(inId),out=$(outId);if(!inp||!out)return;
   const upd=()=>{const f=inp.files?.[0];if(!f){out.textContent=empty;out.title=empty}else{out.textContent='Seçildi';out.title=f.name}};
   inp.addEventListener('change',upd);upd()
 };
-bind('f1','n1','Seçilmedi');bind('f2','n2','Seçilmedi');bind('f3','n3','Seçilmedi');
+bind('f1','n1','Yükle');
+bind('f2','n2','Yükle');
+bind('f4','n4','Yükle'); /* ✅ yeni depo stok (fonksiyonsuz) */
+bind('f3','n3','Yükle');
