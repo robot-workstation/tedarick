@@ -33,7 +33,7 @@ const COLS = [
 ];
 
 const setChip = (id, t, cls = '') => { const e = $(id); if (!e) return; e.textContent = t; e.title = t; e.className = 'chip' + (cls ? ` ${cls}` : '') };
-const chipVis = (id, v) => { const e = $(id); if (e) e.style.display = v ? '' : 'none' };
+const chipVis = (id, v) => { const e = $(id); if (e) e.style.display = v ? '' : '' };
 const setStatus = (t, k = 'ok') => setChip('stChip', t, k);
 
 const safeUrl = u => { u = T(u); if (!u || /^\s*javascript:/i.test(u)) return ''; return u };
@@ -54,6 +54,7 @@ const key = (r, fn) => {
   return b + '||' + (code || ('NAME:' + name));
 };
 const kNew = r => key(r, B), kOld = r => key(r, Bx);
+
 const eans = v => {
   v = (v ?? '').toString().trim();
   if (!v) return [];
@@ -73,45 +74,90 @@ function buildIdx() {
   idxB = new Map(); idxW = new Map(); idxS = new Map();
   for (const r of L2) {
     const bark = D(r[C2.barkod] || ''), ws = T(r[C2.ws] || ''), sup = T(r[C2.sup] || '');
-    if (bark) { if (!idxB.has(bark)) idxB.set(bark, []); idxB.get(bark).push(r) }
+    if (bark) { if (!idxB.has(bark)) idxB.set(bark, []); idxB.get(bark).push(r); }
     if (ws) idxW.set(ws, r);
     if (sup) idxS.set(sup, r);
   }
 
   const wsDl = $('wsCodes'), supDl = $('supCodes');
-  wsDl.innerHTML = ''; supDl.innerHTML = '';
+  if (wsDl) wsDl.innerHTML = '';
+  if (supDl) supDl.innerHTML = '';
   let a = 0, b = 0, MAX = 2e4;
   for (const r of L2) {
     const w = T(r[C2.ws] || ''), p = T(r[C2.sup] || ''), br = T(r[C2.marka] || ''), nm = T(r[C2.urunAdi] || '');
-    if (w && a < MAX) { const o = document.createElement('option'); o.value = w; o.label = (br + ' - ' + nm).slice(0, 140); wsDl.appendChild(o); a++ }
-    if (p && b < MAX) { const o = document.createElement('option'); o.value = p; o.label = (br + ' - ' + nm).slice(0, 140); supDl.appendChild(o); b++ }
+    if (wsDl && w && a < MAX) { const o = document.createElement('option'); o.value = w; o.label = (br + ' - ' + nm).slice(0, 140); wsDl.appendChild(o); a++; }
+    if (supDl && p && b < MAX) { const o = document.createElement('option'); o.value = p; o.label = (br + ' - ' + nm).slice(0, 140); supDl.appendChild(o); b++; }
   }
+}
+
+/* ✅ Depo kod normalize (eşleşme kaçırmasın diye):
+   - NBSP temizle
+   - trim
+   - boşlukları tekle
+   - büyük harf
+   - tamamen sayısalsa: "000123" -> "123" (alt key)
+*/
+const depotCodeNorm = s =>
+  (s ?? '').toString()
+    .replace(/\u00A0/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleUpperCase(TR);
+
+const depotCodeAlt = n => {
+  if (!n) return '';
+  if (!/^[0-9]+$/.test(n)) return '';
+  return n.replace(/^0+(?=\d)/, ''); // en az 1 digit kalsın
+};
+
+/* ✅ Depo stok sayıya çevir (kural: >0 stokta var, <=0 stokta yok) */
+function depotStockNum(raw) {
+  let s = (raw ?? '').toString().trim();
+  if (!s) return 0;
+  // 1.234,56 gibi format varsa
+  if (s.includes('.') && s.includes(',')) s = s.replace(/\./g, '').replace(/,/g, '.');
+  else s = s.replace(/,/g, '.');
+  s = s.replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
 }
 
 /* ✅ Depo index: "Stok Kodu" -> satırlar */
 function buildDepotIdx() {
   idxD = new Map();
   if (!depotReady || !L4.length || !C4.stokKodu) return;
+
   for (const r of L4) {
-    const code = T(r[C4.stokKodu] || '');
-    if (!code) continue;
-    if (!idxD.has(code)) idxD.set(code, []);
-    idxD.get(code).push(r);
+    const raw = r[C4.stokKodu] ?? '';
+    const k = depotCodeNorm(raw);
+    if (!k) continue;
+
+    if (!idxD.has(k)) idxD.set(k, []);
+    idxD.get(k).push(r);
+
+    const alt = depotCodeAlt(k);
+    if (alt && alt !== k) {
+      if (!idxD.has(alt)) idxD.set(alt, []);
+      idxD.get(alt).push(r);
+    }
   }
 }
 
+/* ✅ depo toplamı: aynı stok kodu birden fazla satırsa stokları topla */
 function depotAgg(code) {
-  code = T(code || '');
-  if (!depotReady || !code) return { num: 0, raw: '' };
-  const arr = idxD.get(code);
+  if (!depotReady) return { num: 0, raw: '' };
+  const k = depotCodeNorm(code || '');
+  if (!k) return { num: 0, raw: '0' };
+
+  const alt = depotCodeAlt(k);
+  const arr = idxD.get(k) || (alt ? idxD.get(alt) : null);
   if (!arr?.length) return { num: 0, raw: '0' };
+
   let sum = 0;
   for (const r of arr) {
-    const raw = r[C4.stok] ?? '';
-    sum += stockToNumber(raw, { source: 'products' });
+    sum += depotStockNum(r[C4.stok] ?? '');
   }
-  const s = String(sum);
-  return { num: sum, raw: s };
+  return { num: sum, raw: String(sum) };
 }
 
 function byEan(r1) {
@@ -137,7 +183,7 @@ function byMap(r1) {
   return (ws && idxW.get(ws)) || (sup && idxS.get(sup)) || null;
 }
 
-/* ✅ Stok label’ları: "Stokta Var / Stokta Yok" */
+/* ✅ Stok label’ları */
 const compelLbl = raw => {
   const s = (raw ?? '').toString().trim();
   if (!s) return '';
@@ -149,10 +195,10 @@ const depoLbl = (dNum) => {
   return dNum > 0 ? 'Stokta Var' : 'Stokta Yok';
 };
 
-/* ✅ Kural:
-   Beklenen = (Compel stok VAR) OR (Depo stok VAR)
+/* ✅ KURAL:
+   Beklenen = (Compel VAR) OR (Depo > 0)
    Sescibaba stok bununla aynı olmalı.
-   (Depo yüklenmemişse: eski davranış -> yalnız Compel ile kıyas)
+   Depo yoksa: sadece Compel ile kıyas.
 */
 const stokDur = (compelRaw, sesciRaw, dNum, ok) => {
   if (!ok) return '—';
@@ -175,6 +221,7 @@ function outRow(r1, r2, how) {
   const sup = r2 ? T(r2[C2.sup] || '') : '', bark = r2 ? T(r2[C2.barkod] || '') : '';
   const seoAbs = r2 ? safeUrl(normSeo(r2[C2.seo] || '')) : '', clink = safeUrl(r1[C1.link] || '');
 
+  // ✅ Depo match: sesci tedarikçi kodu -> depo stok kodu
   const d = r2 ? depotAgg(sup) : { num: 0, raw: '' };
 
   return {
@@ -189,7 +236,6 @@ function outRow(r1, r2, how) {
 
     "EAN (Compel)": T(r1[C1.ean] || ''), "EAN (Sescibaba)": bark, "EAN Durumu": eanDur(r1[C1.ean] || '', bark, !!r2),
 
-    /* ham stokları sakla (manuel eşleştirmede bozulmasın) */
     _s1raw: s1raw, _s2raw: s2raw,
     _dnum: d.num, _draw: d.raw,
 
@@ -201,8 +247,8 @@ function runMatch() {
   R = []; U = [];
   for (const r1 of L1) {
     let r2 = byEan(r1), how = r2 ? 'EAN' : '';
-    if (!r2) { r2 = byCompelCodeWs(r1); if (r2) how = 'KOD' }
-    if (!r2) { r2 = byMap(r1); if (r2) how = 'JSON' }
+    if (!r2) { r2 = byCompelCodeWs(r1); if (r2) how = 'KOD'; }
+    if (!r2) { r2 = byMap(r1); if (r2) how = 'JSON'; }
     const row = outRow(r1, r2, how);
     R.push(row);
     if (!row._m) U.push(row);
@@ -218,10 +264,9 @@ const cellName = (txt, href) => {
 };
 
 let _raf = 0, _bound = false;
-const sched = () => { if (_raf) cancelAnimationFrame(_raf); _raf = requestAnimationFrame(adjustLayout) };
+const sched = () => { if (_raf) cancelAnimationFrame(_raf); _raf = requestAnimationFrame(adjustLayout); };
 const firstEl = td => td?.querySelector('.cellTxt,.nm,input,button') || null;
 
-/* ✅ Başlıkları tek satır + kesmeden + çakışmadan sığdır */
 function fitHeaderText(tableId) {
   const t = $(tableId); if (!t) return;
   const ths = t.querySelectorAll('thead th');
@@ -250,17 +295,16 @@ function adjustLayout() {
       let maxRight = tdR.right - G;
       if (next) {
         const el = firstEl(next);
-        if (el) { const r = el.getBoundingClientRect(); maxRight = Math.min(tdR.right + next.getBoundingClientRect().width, r.left - G) }
+        if (el) { const r = el.getBoundingClientRect(); maxRight = Math.min(tdR.right + next.getBoundingClientRect().width, r.left - G); }
         else maxRight = next.getBoundingClientRect().right - G;
       }
       nm.style.maxWidth = Math.max(40, maxRight - nmR.left) + 'px';
     }
   }
-  if (!_bound) { _bound = true; addEventListener('resize', sched) }
+  if (!_bound) { _bound = true; addEventListener('resize', sched); }
 }
 
 function render() {
-  /* ✅ 13 kolon => %100 */
   const W1 = [4, 8, 14, 14, 7, 7, 6, 6, 6, 6, 8, 8, 6];
 
   const head = COLS.map(c => {
@@ -277,9 +321,8 @@ function render() {
     const ean = c === "EAN (Compel)" || c === "EAN (Sescibaba)";
     const cls = [seq ? 'seqCell' : '', sd || ed ? 'statusBold' : '', ean ? 'eanCell' : ''].filter(Boolean).join(' ');
 
-    /* Depo stokta tooltip'e toplam yazalım */
-    const title = (c === "Stok (Depo)" && depotReady && (r._draw ?? '') !== '')
-      ? `${v} (Toplam: ${r._draw})`
+    const title = (c === "Stok (Depo)" && depotReady)
+      ? `${v} (Depo Toplam: ${r._draw ?? '0'})`
       : v;
 
     return `<td class="${cls}" title="${esc(title)}"><span class="cellTxt">${esc(v)}</span></td>`;
@@ -288,8 +331,8 @@ function render() {
   $('t1').innerHTML = colGrp(W1) + `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
 
   const sec = $('unmatchedSection'), btn2 = $('dl2');
-  if (!U.length) { sec.style.display = 'none'; btn2.style.display = 'none' }
-  else { sec.style.display = ''; btn2.style.display = '' }
+  if (!U.length) { sec.style.display = 'none'; if (btn2) btn2.style.display = 'none'; }
+  else { sec.style.display = ''; if (btn2) btn2.style.display = ''; }
 
   if (U.length) {
     const W2 = [6, 10, 28, 12, 18, 10, 10, 6];
@@ -456,7 +499,6 @@ async function generate() {
       chipVis('jsonChip', true);
     } else chipVis('jsonChip', false);
 
-    /* ✅ Listeleme bitti → buton Temizle olsun */
     setGoMode('clear');
   } catch (e) {
     console.error(e);
@@ -479,7 +521,6 @@ $('dl3').onclick = () => {
   downloadBlob('mapping.json', new Blob([JSON.stringify(map, null, 2)], { type: 'application/json;charset=utf-8' }));
 };
 
-/* ✅ Tek buton davranışı */
 if (goBtn) {
   goBtn.onclick = async () => {
     if (goBtn.dataset.mode === 'clear') return location.reload();
@@ -487,11 +528,7 @@ if (goBtn) {
   };
 }
 
-/* reset butonu yoksa hata verme */
-const _r = $('reset');
-if (_r) _r.onclick = () => location.reload();
-
-/* ✅ Yükleme kutularında “Yükle” yazsın */
+/* ✅ Yükleme kutuları */
 const bind = (inId, outId, empty) => {
   const inp = $(inId), out = $(outId); if (!inp || !out) return;
   const upd = () => {
@@ -537,28 +574,31 @@ const hideDepo = () => {
   depoModal.setAttribute('aria-hidden', 'true');
 };
 
+/* ✅ Senin verdiğin P() mantığına daha yakın “noisy paste” parser */
 function depotFromNoisyPaste(text) {
-  const DFLT_FIRMA = "Depo";
-  const E = s => s;
+  const FirmaDefault = "Sescibaba"; // senin örnekte D="Sescibaba"
   const N = s => !s || /^(Tümü|Sesçibaba Logo|Şirketler|Siparişler|Onay Bekleyen|Sipariş Listesi|İade Listesi|Sesçibaba Stokları|Stok Listesi|Ara|Previous|Next|E-Commerce Management.*|Showing\b.*|Marka\s+Model\s+Stok\s+Kodu.*|\d+)$/.test(s);
 
-  const rows = [];
+  const out = [];
   const lines = (text || '').split(/\r\n|\r|\n/);
+
   for (let l of lines) {
     l = (l || '').replace(/\u00A0/g, " ").trim();
     if (N(l)) continue;
+
     if (!l.includes("\t")) continue;
 
+    // önemli: tab split + trim. (filter(Boolean) aynen sende olduğu gibi)
     const a = l.split("\t").map(x => x.trim()).filter(Boolean);
     if (a.length < 6) continue;
 
-    let m = '', mo = '', k = '', ac = '', s = '', w = '', f = DFLT_FIRMA;
+    let m = '', mo = '', k = '', ac = '', s = '', w = '', f = FirmaDefault;
 
     if (a.length === 6) {
       m = a[0]; mo = a[1]; k = a[2]; ac = a[3]; s = a[4]; w = a[5];
     } else {
       m = a[0];
-      f = a.at(-1) || DFLT_FIRMA;
+      f = a.at(-1) || FirmaDefault;
       w = a.at(-2) || '';
       s = a.at(-3) || '';
       const mid = a.slice(1, -3);
@@ -568,20 +608,22 @@ function depotFromNoisyPaste(text) {
       ac = mid.at(-1) || '';
     }
 
-    // stok sayısal değilse pas geç
-    if (!String(s).trim() || !/^[0-9]+([.,][0-9]+)?$/.test(String(s).trim())) continue;
+    // stok sayısal olmalı (negatif/ondalık da kabul)
+    const stokStr = String(s ?? '').trim();
+    if (!stokStr || !/^-?\d+(?:[.,]\d+)?$/.test(stokStr)) continue;
 
-    rows.push({
-      "Marka": E(m),
-      "Model": E(mo),
-      "Stok Kodu": E(k),
-      "Açıklama": E(ac),
-      "Stok": E(s),
-      "Ambar": E(w),
-      "Firma": E(f)
+    out.push({
+      "Marka": m,
+      "Model": mo,
+      "Stok Kodu": k,
+      "Açıklama": ac,
+      "Stok": stokStr,
+      "Ambar": w,
+      "Firma": f
     });
   }
-  return rows;
+
+  return out;
 }
 
 function loadDepotFromText(text) {
@@ -589,30 +631,34 @@ function loadDepotFromText(text) {
   if (!raw.trim()) return alert('Depo verisi boş.');
 
   // 1) önce normal CSV/TSV parse dene
-  let p = parseDelimited(raw);
-  let rows = p?.rows || [];
   let ok = false;
-
-  if (rows.length) {
-    const sample = rows[0];
-    const stokKodu = pickColumn(sample, ['Stok Kodu', 'StokKodu', 'STOK KODU', 'Stock Code']);
-    const stok = pickColumn(sample, ['Stok', 'Miktar', 'Qty', 'Quantity']);
-    if (stokKodu && stok) {
-      ok = true;
-      L4 = rows;
-      C4 = {
-        stokKodu,
-        stok,
-        ambar: pickColumn(sample, ['Ambar', 'Depo', 'Warehouse']),
-        firma: pickColumn(sample, ['Firma', 'Şirket', 'Company'])
-      };
+  try {
+    const p = parseDelimited(raw);
+    const rows = p?.rows || [];
+    if (rows.length) {
+      // header doğruysa kolonları yakalar
+      const sample = rows[0];
+      const stokKodu = pickColumn(sample, ['Stok Kodu', 'StokKodu', 'STOK KODU', 'Stock Code']);
+      const stok = pickColumn(sample, ['Stok', 'Miktar', 'Qty', 'Quantity']);
+      if (stokKodu && stok) {
+        L4 = rows;
+        C4 = {
+          stokKodu,
+          stok,
+          ambar: pickColumn(sample, ['Ambar', 'Depo', 'Warehouse']),
+          firma: pickColumn(sample, ['Firma', 'Şirket', 'Company'])
+        };
+        ok = true;
+      }
     }
+  } catch {
+    ok = false;
   }
 
-  // 2) olmadıysa “noisy copy” parser (tablo kopyası)
+  // 2) olmadıysa: noisy paste parser
   if (!ok) {
     const r2 = depotFromNoisyPaste(raw);
-    if (!r2.length) return alert('Depo verisi çözümlenemedi. (Başlık/kolon veya tablo kopyası bekleniyordu.)');
+    if (!r2.length) return alert('Depo verisi çözümlenemedi. (Tablolu kopya bekleniyordu.)');
     L4 = r2;
     C4 = { stokKodu: 'Stok Kodu', stok: 'Stok', ambar: 'Ambar', firma: 'Firma' };
     ok = true;
@@ -623,7 +669,7 @@ function loadDepotFromText(text) {
   setDepoUi(true);
   setStatus('Depo yüklendi', 'ok');
 
-  // eğer L1/L2 zaten yüklüyse tabloyu depo sütunuyla güncelle
+  // L1/L2 varsa anında yeniden hesapla
   if (L1.length && L2.length) runMatch();
 }
 
