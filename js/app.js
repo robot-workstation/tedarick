@@ -95,7 +95,6 @@ function runMatch(){
 }
 
 const cellName=(txt,href)=>{const v=(txt??'').toString(),u=href||'';return u?`<a class="nm" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`:`<span class="nm" title="${esc(v)}">${esc(v)}</span>`};
-const colGrp=w=>`<colgroup>${w.map(x=>`<col style="width:${x}%">`).join('')}</colgroup>`;
 const disp=c=>c==="Sıra No"?"Sıra":c;
 const fmtHdr=s=>{
   s=(s??'').toString();
@@ -131,23 +130,24 @@ function adjustNames(){
 }
 
 function render(){
-  const W1=[4,9,15,15,7,7,6,6,6,9,9,7];
   const head=COLS.map(c=>{const l=disp(c);return`<th title="${esc(l)}">${fmtHdr(l)}</th>`}).join('');
   const body=R.map(r=>`<tr>${COLS.map((c,idx)=>{
     const v=r[c]??'';
     if(c==="Ürün Adı (Compel)")return`<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
     if(c==="Ürün Adı (Sescibaba)")return`<td class="left nameCell">${cellName(v,r._seo||'')}</td>`;
-    const seq=idx===0,sd=c==="Stok Durumu",ed=c==="EAN Durumu",ean=c==="EAN (Compel)"||c==="EAN (Sescibaba)";
+    const seq=idx===0;
+    const sd=c==="Stok Durumu",ed=c==="EAN Durumu";
+    const ean=c==="EAN (Compel)"||c==="EAN (Sescibaba)";
+    /* ✅ Sıra + Stok Durumu + EAN Durumu ALTINDAKİ DEĞERLER BOLD */
     const cls=[seq?'seqCell':'',sd||ed?'statusBold':'',ean?'eanCell':''].filter(Boolean).join(' ');
     return`<td class="${cls}" title="${esc(v)}"><span class="cellTxt">${esc(v)}</span></td>`
   }).join('')}</tr>`).join('');
-  $('t1').innerHTML=colGrp(W1)+`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+  $('t1').innerHTML=`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
 
   const sec=$('unmatchedSection'),btn2=$('dl2');
   if(!U.length){sec.style.display='none';btn2.style.display='none'}else{sec.style.display='';btn2.style.display=''}
   if(U.length){
-    const W2=[6,10,28,12,18,10,10,6];
-    $('t2').innerHTML=colGrp(W2)+`<thead><tr><th>Sıra</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>EAN</th><th>Web Servis</th><th>Tedarikçi</th><th></th></tr></thead><tbody>`+
+    $('t2').innerHTML=`<thead><tr><th>Sıra</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>EAN</th><th>Web Servis</th><th>Tedarikçi</th><th></th></tr></thead><tbody>`+
       U.map((r,i)=>`<tr id="u_${i}">
         <td class="seqCell" title="${esc(r["Sıra No"])}"><span class="cellTxt">${esc(r["Sıra No"])}</span></td>
         <td title="${esc(r["Marka"])}"><span class="cellTxt">${esc(r["Marka"])}</span></td>
@@ -214,6 +214,7 @@ async function generate(){
 
     C1={siraNo:pickColumn(s1,['Sıra No','Sira No','SIRA NO']),marka:pickColumn(s1,['Marka']),urunAdi:pickColumn(s1,['Ürün Adı','Urun Adi','Ürün Adi']),urunKodu:pickColumn(s1,['Ürün Kodu','Urun Kodu']),stok:pickColumn(s1,['Stok']),ean:pickColumn(s1,['EAN','Ean']),link:pickColumn(s1,['Link','LINK','Ürün Linki','Urun Linki'])};
     C2={ws:pickColumn(s2,['Web Servis Kodu','WebServis Kodu','WebServisKodu']),urunAdi:pickColumn(s2,['Ürün Adı','Urun Adi','Ürün Adi']),sup:pickColumn(s2,['Tedarikçi Ürün Kodu','Tedarikci Urun Kodu','Tedarikçi Urun Kodu']),barkod:pickColumn(s2,['Barkod','BARKOD']),stok:pickColumn(s2,['Stok']),marka:pickColumn(s2,['Marka']),seo:pickColumn(s2,['SEO Link','Seo Link','SEO','Seo'])};
+
     const need=(o,a)=>a.filter(k=>!o[k]);
     const m1=need(C1,['siraNo','marka','urunAdi','urunKodu','stok','ean','link']),m2=need(C2,['ws','sup','barkod','stok','marka','urunAdi','seo']);
     if(m1.length||m2.length){setStatus('Sütun eksik','bad');console.warn('L1',m1,'L2',m2);return}
