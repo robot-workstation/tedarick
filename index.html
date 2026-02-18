@@ -31,7 +31,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{border-bottom:1px solid #1f2430;padding:9px 6px;text-align:center;vertical-align:middle;font-size:14px;line-height:1.1}
 td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ✅ başlıklar: tek satır + kesme yok + üst üste gelmez (JS scaleX ile sığdıracağız) */
+/* ✅ başlıklar: tek satır + kesme yok + üst üste gelmez (JS scaleX ile sığdırıyoruz) */
 th{position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;white-space:nowrap;overflow:hidden;text-overflow:clip;padding:7px 6px}
 thead tr:hover{background:inherit}
 tbody tr:hover{background:#111827}
@@ -63,9 +63,14 @@ input[type=text]:focus{outline:none;border-color:#6b7da6}
 <main>
   <header class="topbar">
     <div class="controls">
-      <label class="file" title="Compel Sonuç (CSV)"><span class="fbtn">Compel Sonuç</span><span class="fname" id="n1">Seçilmedi</span><input id="f1" type="file" accept=".csv,text/csv"></label>
-      <label class="file" title="Sescibaba Stok (CSV)"><span class="fbtn">Sescibaba Stok</span><span class="fname" id="n2">Seçilmedi</span><input id="f2" type="file" accept=".csv,text/csv"></label>
-      <label class="file" title="JSON Map (opsiyonel)"><span class="fbtn">JSON Map</span><span class="fname" id="n3">Seçilmedi</span><input id="f3" type="file" accept=".json,application/json"></label>
+      <label class="file" title="Compel Sonuç (CSV)"><span class="fbtn">Compel Sonuç</span><span class="fname" id="n1">Yükle</span><input id="f1" type="file" accept=".csv,text/csv"></label>
+
+      <label class="file" title="Sescibaba Stok (CSV)"><span class="fbtn">Sescibaba Stok</span><span class="fname" id="n2">Yükle</span><input id="f2" type="file" accept=".csv,text/csv"></label>
+
+      <!-- ✅ Yeni: Depo Stok Yükle (şimdilik fonksiyonsuz) -->
+      <label class="file" title="Depo Stok Yükle (CSV)"><span class="fbtn">Depo Stok Yükle</span><span class="fname" id="n4">Yükle</span><input id="f4" type="file" accept=".csv,text/csv"></label>
+
+      <label class="file" title="JSON Map (opsiyonel)"><span class="fbtn">JSON Map</span><span class="fname" id="n3">Yükle</span><input id="f3" type="file" accept=".json,application/json"></label>
 
       <span class="sep"></span>
 
