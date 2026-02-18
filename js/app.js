@@ -21,10 +21,14 @@ let C1 = {}, C2 = {};
 let idxB = new Map(), idxW = new Map(), idxS = new Map();
 let R = [], U = [];
 
+// İstenen kolonlar (Web Servis Kodu kaldırıldı, Tedarikçi->Ürün Kodu (Sescibaba))
+// EAN/Barkod (Sescibaba) -> EAN (Sescibaba) + EAN Durumu eklendi
 const COLS = [
-  "Sıra No","Marka","Ürün Adı (Compel)","Ürün Adı (Sescibaba)","Ürün Kodu (Compel)",
-  "Web Servis Kodu","Tedarikçi Ürün Kodu",
-  "Stok (Compel)","Stok (Sescibaba)","Stok Durumu","EAN (Compel)","EAN/Barkod (Sescibaba)"
+  "Sıra No","Marka",
+  "Ürün Adı (Compel)","Ürün Adı (Sescibaba)",
+  "Ürün Kodu (Compel)","Ürün Kodu (Sescibaba)",
+  "Stok (Compel)","Stok (Sescibaba)","Stok Durumu",
+  "EAN (Compel)","EAN (Sescibaba)","EAN Durumu"
 ];
 
 const setStatus = (html) => { $('st').innerHTML = html; };
@@ -44,11 +48,9 @@ const normalizeSeoUrl = (raw) => {
   if (/^\s*javascript:/i.test(u)) return '';
   if (/^https?:\/\//i.test(u)) return u;
 
-  // "www." ya da "sescibaba.com/..." gibi gelirse
   if (/^www\./i.test(u)) return 'https://' + u;
   if (/^sescibaba\.com/i.test(u)) return 'https://' + u;
 
-  // "/urun/..." ya da "urun/..." gibi gelirse
   u = u.replace(/^\/+/, '');
   return SEO_BASE + u;
 };
@@ -120,6 +122,7 @@ function findByMap(r1) {
 }
 
 // stok var/yok karşılaştır (products'ta "-" => yok)
+// Ekranda Stok(Sescibaba) artık "Stokta Var/Yok" yazacağı için karşılaştırmayı ham değerle yapıyoruz.
 function stokDurumu(compelStokRaw, prodStokRaw, matched) {
   if (!matched) return '—';
   const a = inStock(compelStokRaw, { source: 'compel' });
@@ -127,30 +130,47 @@ function stokDurumu(compelStokRaw, prodStokRaw, matched) {
   return (a === b) ? 'Doğru' : 'Hatalı';
 }
 
+function stokLabelSescibaba(prodStokRaw, matched) {
+  if (!matched) return '';
+  return inStock(prodStokRaw, { source: 'products' }) ? 'Stokta Var' : 'Stokta Yok';
+}
+
+function eanDurumu(compelEanRaw, sesEanRaw, matched) {
+  if (!matched) return '—';
+  const a = new Set(eans(compelEanRaw || ''));
+  const b = eans(sesEanRaw || '');
+  if (!a.size || !b.length) return 'Eşleşmedi';
+  for (const x of b) if (a.has(x)) return 'Eşleşti';
+  return 'Eşleşmedi';
+}
+
 function outRow(r1, r2, how) {
   const s1 = T(r1[C1.stok] || '');
-  const s2 = r2 ? T(r2[C2.stok] || '') : '';
+  const s2raw = r2 ? T(r2[C2.stok] || '') : '';
 
-  const ws = r2 ? T(r2[C2.ws] || '') : '';
   const sup = r2 ? T(r2[C2.sup] || '') : '';
+  const barkRaw = r2 ? T(r2[C2.barkod] || '') : '';
+
   const seoAbs = r2 ? safeUrl(normalizeSeoUrl(r2[C2.seo] || '')) : '';
   const clink = safeUrl(r1[C1.link] || '');
 
   return {
     "Sıra No": T(r1[C1.siraNo] || ''),
     "Marka": T(r1[C1.marka] || ''),
+
     "Ürün Adı (Compel)": T(r1[C1.urunAdi] || ''),
     "Ürün Adı (Sescibaba)": r2 ? T(r2[C2.urunAdi] || '') : '',
-    "Ürün Kodu (Compel)": T(r1[C1.urunKodu] || ''),
 
-    "Web Servis Kodu": ws,
-    "Tedarikçi Ürün Kodu": sup,
+    "Ürün Kodu (Compel)": T(r1[C1.urunKodu] || ''),
+    "Ürün Kodu (Sescibaba)": sup,
 
     "Stok (Compel)": s1,
-    "Stok (Sescibaba)": s2,
-    "Stok Durumu": stokDurumu(s1, s2, !!r2),
+    "Stok (Sescibaba)": stokLabelSescibaba(s2raw, !!r2),
+    "Stok Durumu": stokDurumu(s1, s2raw, !!r2),
+
     "EAN (Compel)": T(r1[C1.ean] || ''),
-    "EAN/Barkod (Sescibaba)": r2 ? T(r2[C2.barkod] || '') : '',
+    "EAN (Sescibaba)": barkRaw,
+    "EAN Durumu": eanDurumu(r1[C1.ean] || '', barkRaw, !!r2),
 
     _m: !!r2,
     _how: r2 ? how : '',
@@ -177,8 +197,6 @@ function renderCompelCell(r) {
   const name = r["Ürün Adı (Compel)"] ?? '';
   const link = r._clink || '';
   if (!link) return esc(name);
-
-  // Ürün adına tıklayınca yeni sekmede Compel linki açılsın
   return `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(name)}</a>`;
 }
 
@@ -186,25 +204,37 @@ function renderSescibabaCell(r) {
   const name = r["Ürün Adı (Sescibaba)"] ?? '';
   const seo = r._seo || '';
   if (!seo) return esc(name);
-
-  // Ürün adına tıklayınca yeni sekmede SEO link açılsın
   return `<a href="${esc(seo)}" target="_blank" rel="noopener" title="${esc(seo)}">${esc(name)}</a>`;
+}
+
+function isNameCol(c) {
+  return c === "Ürün Adı (Compel)" || c === "Ürün Adı (Sescibaba)";
 }
 
 function render() {
   // Results table
   $('t1').innerHTML =
-    `<thead><tr>${COLS.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>` +
-    `<tbody>${R.map((r)=>{
-      return `<tr>${COLS.map(c=>{
-        if (c === "Ürün Adı (Compel)") return `<td>${renderCompelCell(r)}</td>`;
-        if (c === "Ürün Adı (Sescibaba)") return `<td>${renderSescibabaCell(r)}</td>`;
-        const v = r[c] ?? '';
-        return `<td>${esc(v)}</td>`;
-      }).join('')}</tr>`;
-    }).join('')}</tbody>`;
+    `<thead><tr>${
+      COLS.map(c => {
+        const align = isNameCol(c) ? 'left' : 'center';
+        return `<th style="text-align:${align}">${esc(c)}</th>`;
+      }).join('')
+    }</tr></thead>` +
+    `<tbody>${
+      R.map((r)=>{
+        return `<tr>${
+          COLS.map(c=>{
+            const align = isNameCol(c) ? 'left' : 'center';
+            if (c === "Ürün Adı (Compel)") return `<td style="text-align:${align}">${renderCompelCell(r)}</td>`;
+            if (c === "Ürün Adı (Sescibaba)") return `<td style="text-align:${align}">${renderSescibabaCell(r)}</td>`;
+            const v = r[c] ?? '';
+            return `<td style="text-align:${align}">${esc(v)}</td>`;
+          }).join('')
+        }</tr>`;
+      }).join('')
+    }</tbody>`;
 
-  // Unmatched table
+  // Unmatched table (manuel eşleştirme alanı aynı kalsın)
   $('t2').innerHTML =
     `<thead><tr>
       <th>Sıra No</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>EAN</th>
