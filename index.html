@@ -11,7 +11,7 @@
       margin:0;height:100vh;overflow:hidden;display:flex;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
       background:#0b0d12;color:#eaeef7;
-      font-size:15px; /* +1 */
+      font-size:15px;
     }
 
     main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
@@ -23,8 +23,8 @@
     .controls{
       display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-start
     }
-
     .sep{width:8px;flex:0 0 auto}
+    .sepSm{width:6px;flex:0 0 auto} /* Temizle ↔ CSV arasında */
 
     button,.file{
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
@@ -40,13 +40,13 @@
     button:disabled{opacity:.55;cursor:not-allowed}
     button:disabled:hover{background:#111827;border-color:#2a3140}
 
-    /* Dosya kutuları (dar + butonla aynı yükseklik) */
+    /* Dosya kutuları (Temizle hover gibi) */
     .file{
       display:flex;align-items:center;gap:8px;
       padding:0 10px;
       user-select:none;cursor:pointer;max-width:520px
     }
-    .file:hover{background:#1f2a44;border-color:#6b7da6} /* Temizle hover gibi */
+    .file:hover{background:#1f2a44;border-color:#6b7da6}
     .file input{display:none}
     .fbtn{white-space:nowrap}
     .fname{
@@ -55,7 +55,7 @@
       max-width:170px
     }
 
-    /* Bilgi kutusu (butonlarla aynı hizalı yükseklik) */
+    /* Bilgi kutusu */
     .ibox{
       height:36px;
       display:flex;align-items:center;flex-wrap:wrap;gap:6px;
@@ -80,7 +80,7 @@
     /* Table */
     .tableWrap{
       flex:1;min-height:0;overflow:auto;
-      overflow-x:hidden; /* sağa-sola kayma yok */
+      overflow-x:hidden;
       border:1px solid #1f2430;border-radius:12px;background:#0f1320
     }
 
@@ -94,23 +94,48 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      font-size:14px; /* +1 */
+      font-size:14px;
       line-height:1.2
     }
+
+    /* Başlıklar: kısıtlama yok, taşabilir/üst üste binebilir */
     th{
       position:sticky;top:0;z-index:2;
-      background:#0b0d12;font-weight:1100
+      background:#0b0d12;font-weight:1100;
+      overflow:visible;
+      text-overflow:clip;
     }
+
     tbody tr:hover{background:#111827}
 
     .left{ text-align:left !important; }
 
+    /* Ürün adı hücreleri: kısıtlama yok, yan hücrelerin üstüne taşabilir */
+    td.nameCell{
+      overflow:visible;
+      text-overflow:clip;
+      position:relative;
+      z-index:1;
+    }
+    td.nameCell .nm{
+      display:inline-block;
+      max-width:none;
+      overflow:visible;
+      text-overflow:clip;
+      white-space:nowrap;
+      position:relative;
+      z-index:3;
+    }
+
+    /* Link genel stiller */
     a{
       color:#93c5fd;text-decoration:none;
-      display:block;max-width:100%;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis
     }
     a:hover{text-decoration:underline}
+
+    /* Başlık içi parantez stili */
+    .hMain{font-weight:1100}
+    .hParen{font-size:12px;font-weight:400;opacity:.9} /* 2 birim küçük, bold değil */
 
     input[type=text]{
       width:100%;min-width:78px;box-sizing:border-box;
@@ -145,7 +170,7 @@
 
       <label class="file" title="JSON Map (opsiyonel)">
         <span class="fbtn">JSON Map</span>
-        <span class="fname" id="n3">Opsiyonel</span>
+        <span class="fname" id="n3">Seçilmedi</span>
         <input id="f3" type="file" accept=".json,application/json">
       </label>
 
@@ -155,6 +180,8 @@
       <button id="go">Listele</button>
       <button id="reset" title="Her şeyi sıfırla">Temizle</button>
 
+      <span class="sepSm"></span>
+
       <!-- Outputs (Temizle'nin sağında) -->
       <button id="dl1" disabled>CSV Çıktı</button>
       <button id="dl2" disabled style="display:none">Eşleşmeyen CSV</button>
@@ -162,7 +189,7 @@
 
       <span class="sep"></span>
 
-      <!-- Info (butonlarla aynı yükseklikte) -->
+      <!-- Info -->
       <div class="ibox" id="infoBox">
         <span class="chip ok" id="stChip">Hazır</span>
         <span class="chip" id="l1Chip" title="L1">L1:-</span>
