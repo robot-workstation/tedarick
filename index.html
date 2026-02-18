@@ -22,16 +22,27 @@ button:disabled{opacity:.55;cursor:not-allowed}button:disabled:hover{background:
 .panel{padding:8px;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .results{flex:2 1 0}.unmatched{flex:1 1 0}
 
-/* ✅ Yatay kayma yok: sadece dikey scroll */
+/* ✅ yatay kayma yok */
 .tableWrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
 
-/* ✅ Tablo sayfaya sığar (daralır) */
+/* ✅ tablo sayfaya sığar */
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 
-th,td{border-bottom:1px solid #1f2430;padding:9px 6px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:1.1}
+/* Gövde tek satır */
+th,td{border-bottom:1px solid #1f2430;padding:9px 6px;text-align:center;vertical-align:middle;font-size:14px;line-height:1.1}
+td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ✅ Başlıklar kısıtlanmaz: taşabilir/üst üste binebilir */
-th{position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;overflow:visible;text-overflow:clip}
+/* ✅ BAŞLIKLAR: karakter kısıtlaması yok + üst üste binmez + kayma yok
+   => başlıklar satır kırarak sığar (wrap) */
+th{
+  position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;
+  white-space:normal;           /* wrap */
+  overflow:hidden;              /* taşmayı kes (overlap olmasın) */
+  text-overflow:clip;           /* ... yok */
+  overflow-wrap:anywhere;       /* uzun kelimeler de kırılabilsin */
+  word-break:break-word;
+  padding:7px 6px;              /* biraz kompakt */
+}
 
 tbody tr:hover{background:#111827}
 .left{text-align:left!important}
@@ -40,13 +51,10 @@ tbody tr:hover{background:#111827}
 .hParen{font-size:12px;font-weight:400;opacity:.9}
 
 .cellTxt{display:inline-block}
-
 td.nameCell{overflow:visible;text-overflow:clip;position:relative;z-index:1}
 td.nameCell .nm{display:inline-block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:9999px;position:relative;z-index:3}
-
 td.eanCell{overflow:visible;text-overflow:clip}
 
-/* ✅ Bold istenenler */
 td.seqCell{font-weight:1100}
 td.statusBold{font-weight:1100}
 
