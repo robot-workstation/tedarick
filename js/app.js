@@ -37,8 +37,24 @@ const COLS = [
   "EAN (Compel)","EAN (Sescibaba)","EAN Durumu"
 ];
 
-const setStatus = (html) => { $('st').innerHTML = html; };
+/* ======= Üst bilgi kutusu yardımcıları ======= */
+function setChip(id, text, cls) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = text;
+  el.title = text;
+  el.className = 'chip' + (cls ? ` ${cls}` : '');
+}
+function setChipVisible(id, visible) {
+  const el = $(id);
+  if (!el) return;
+  el.style.display = visible ? '' : 'none';
+}
+function setStatus(label, kind = 'ok') {
+  setChip('stChip', label, kind); // kind: ok / bad / unk / muted
+}
 
+/* ======= URL güvenliği ======= */
 const safeUrl = (u) => {
   u = T(u);
   if (!u) return '';
@@ -115,7 +131,7 @@ function findByEan(r1) {
   return null;
 }
 
-// ✅ YENİ: EAN eşleşmezse 2. adım olarak Compel Ürün Kodu -> Sescibaba Web Servis Kodu dene
+// EAN eşleşmezse: Compel Ürün Kodu -> Sescibaba Web Servis Kodu dene
 function findByCompelCodeWs(r1) {
   const code = T(r1[C1.urunKodu] || '');
   if (!code) return null;
@@ -221,35 +237,46 @@ function runMatching() {
   render();
 }
 
-/* ==== Tek satır + ellipsis için cell render ==== */
-function cellSpan(txt) {
-  const v = (txt ?? '').toString();
-  return `<span title="${esc(v)}">${esc(v)}</span>`;
+/* ======= Metin kısaltma (özellikle ürün adları) ======= */
+const MAX_NAME = 20;
+function clampName(s) {
+  const v = (s ?? '').toString();
+  if (v.length <= MAX_NAME) return { show: v, full: v };
+  return { show: v.slice(0, Math.max(0, MAX_NAME - 3)) + '...', full: v };
 }
-function cellLink(txt, href) {
+
+function cellSpan(txt, isName = false) {
+  const v = (txt ?? '').toString();
+  const t = isName ? clampName(v) : { show: v, full: v };
+  return `<span title="${esc(t.full)}">${esc(t.show)}</span>`;
+}
+
+function cellLink(txt, href, isName = false) {
   const v = (txt ?? '').toString();
   const u = href || '';
-  if (!u) return cellSpan(v);
-  return `<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`;
+  const t = isName ? clampName(v) : { show: v, full: v };
+  if (!u) return `<span title="${esc(t.full)}">${esc(t.show)}</span>`;
+  return `<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(t.full)}">${esc(t.show)}</a>`;
 }
 
 function renderCompelCell(r) {
-  return cellLink(r["Ürün Adı (Compel)"] ?? '', r._clink || '');
+  return cellLink(r["Ürün Adı (Compel)"] ?? '', r._clink || '', true);
 }
 function renderSescibabaCell(r) {
-  return cellLink(r["Ürün Adı (Sescibaba)"] ?? '', r._seo || '');
+  return cellLink(r["Ürün Adı (Sescibaba)"] ?? '', r._seo || '', true);
 }
 
-function colGroup(widths) {
-  return `<colgroup>${widths.map(w => `<col style="width:${w}px">`).join('')}</colgroup>`;
+/* ======= Tablo responsive: yüzde kolonlar (sağa-sola kayma yok) ======= */
+function colGroupPerc(widths) {
+  return `<colgroup>${widths.map(w => `<col style="width:${w}%">`).join('')}</colgroup>`;
 }
 
 function render() {
-  // sıkı, veri-tasarruflu kolon genişlikleri
-  const W1 = [54,110,260,260,130,130,90,100,90,150,150,90];
+  // 12 kolon toplam %100
+  const W1 = [4,8,17,17,8,8,6,6,6,7,7,6];
 
   $('t1').innerHTML =
-    colGroup(W1) +
+    colGroupPerc(W1) +
     `<thead><tr>${COLS.map(c => `<th title="${esc(c)}">${esc(c)}</th>`).join('')}</tr></thead>` +
     `<tbody>${
       R.map((r)=>{
@@ -264,27 +291,26 @@ function render() {
       }).join('')
     }</tbody>`;
 
-  // Unmatched table
-  const cols2 = ["Sıra No","Marka","Ürün Adı (Compel)","Ürün Kodu (Compel)","EAN (Compel)"];
-  const W2 = [54,110,260,130,150,120,120,96];
+  // Unmatched table (8 kolon %100)
+  const W2 = [6,10,26,12,16,12,12,6];
 
   $('t2').innerHTML =
-    colGroup(W2) +
+    colGroupPerc(W2) +
     `<thead><tr>
-      <th title="Sıra No">Sıra No</th>
+      <th title="Sıra No">Sıra</th>
       <th title="Marka">Marka</th>
       <th title="Ürün Adı">Ürün Adı</th>
-      <th title="Ürün Kodu">Ürün Kodu</th>
+      <th title="Ürün Kodu">Kodu</th>
       <th title="EAN">EAN</th>
-      <th title="Web Servis">Web Servis</th>
-      <th title="Tedarikçi">Tedarikçi</th>
+      <th title="Web Servis">WS</th>
+      <th title="Tedarikçi">SUP</th>
       <th title=""></th>
     </tr></thead>` +
     `<tbody>${U.map((r,i)=>`
       <tr id="u_${i}">
         <td title="${esc(r["Sıra No"])}">${esc(r["Sıra No"])}</td>
         <td title="${esc(r["Marka"])}">${esc(r["Marka"])}</td>
-        <td title="${esc(r["Ürün Adı (Compel)"])}">${esc(r["Ürün Adı (Compel)"])}</td>
+        <td title="${esc(r["Ürün Adı (Compel)"])}">${esc(clampName(r["Ürün Adı (Compel)"] || '').show)}</td>
         <td title="${esc(r["Ürün Kodu (Compel)"])}">${esc(r["Ürün Kodu (Compel)"])}</td>
         <td title="${esc(r["EAN (Compel)"])}">${esc(r["EAN (Compel)"])}</td>
         <td><input type="text" list="wsCodes" data-i="${i}" data-f="ws" placeholder="ws"></td>
@@ -295,7 +321,8 @@ function render() {
   $('t2').querySelectorAll('.mx').forEach(b => b.onclick = () => manualMatch(+b.dataset.i));
 
   const matched = R.filter(x => x._m).length;
-  $('sum').textContent = `Toplam ${R.length} • ✓${matched} • ✕${R.length - matched}`;
+  const sumText = `Toplam ${R.length} • ✓${matched} • ✕${R.length - matched}`;
+  setChip('sum', sumText, 'muted');
 
   $('dl1').disabled = !R.length;
   $('dl2').disabled = !U.length;
@@ -348,24 +375,36 @@ async function generate() {
   const a = $('f1').files[0], b = $('f2').files[0], j = $('f3').files[0];
   if (!a || !b) return alert('Lütfen 1) ve 2) CSV dosyalarını seç.');
 
-  setStatus(`<span class="chip unk">Okunuyor…</span>`);
+  setStatus('Okunuyor…', 'unk');
+  setChip('l1Chip', 'L1:—', '');
+  setChip('l2Chip', 'L2:—', '');
+  setChipVisible('jsonChip', false);
+
+  let jsonLoaded = false;
 
   try {
-    const [t1, t2, t3] = await Promise.all([readFileText(a), readFileText(b), j ? readFileText(j) : Promise.resolve(null)]);
+    const [t1, t2, t3] = await Promise.all([
+      readFileText(a),
+      readFileText(b),
+      j ? readFileText(j) : Promise.resolve(null)
+    ]);
 
-    // JSON load
+    // JSON load (yüklü değilse JSON:0 gösterme)
     if (t3) {
       try {
         const p = JSON.parse(t3);
         map = (p?.mappings) ? p : { meta:{version:1,createdAt:nowISO(),updatedAt:nowISO()}, mappings: (p || {}) };
         map.meta = map.meta || {version:1,createdAt:nowISO(),updatedAt:nowISO()};
         map.meta.updatedAt = nowISO();
+        jsonLoaded = true;
       } catch {
-        alert('JSON okunamadı, boş mapping ile devam.');
+        alert('JSON okunamadı, mapping kullanılmadan devam.');
         map = { meta:{version:1,createdAt:nowISO(),updatedAt:nowISO()}, mappings:{} };
+        jsonLoaded = false;
       }
     } else {
       map = { meta:{version:1,createdAt:nowISO(),updatedAt:nowISO()}, mappings:{} };
+      jsonLoaded = false;
     }
 
     const p1 = parseDelimited(t1), p2 = parseDelimited(t2);
@@ -397,7 +436,8 @@ async function generate() {
     const m1 = need(C1, ['siraNo','marka','urunAdi','urunKodu','stok','ean','link']);
     const m2 = need(C2, ['ws','sup','barkod','stok','marka','urunAdi','seo']);
     if (m1.length || m2.length) {
-      setStatus(`<span class="chip bad">Sütun eksik</span><span class="chip muted">L1: ${esc(m1.join(', ')) || 'ok'}</span><span class="chip muted">L2: ${esc(m2.join(', ')) || 'ok'}</span>`);
+      setStatus('Sütun eksik', 'bad');
+      console.warn('L1 eksik:', m1, 'L2 eksik:', m2);
       return;
     }
 
@@ -411,17 +451,21 @@ async function generate() {
     buildIndices();
     runMatching();
 
-    setStatus(
-      `<span class="chip ok">Hazır</span>` +
-      `<span class="chip">L1:${L1.length}</span>` +
-      `<span class="chip">L2:${L2.length}/${L2all.length}</span>` +
-      `<span class="chip">JSON:${Object.keys(map.mappings||{}).length}</span>` +
-      `<span class="chip muted">Alias: Allen &amp; Heath → Allen Heath</span>` +
-      `<span class="chip muted">products stok “-” = yok</span>`
-    );
+    setStatus('Hazır', 'ok');
+    setChip('l1Chip', `L1:${L1.length}`, '');
+    setChip('l2Chip', `L2:${L2.length}/${L2all.length}`, '');
+
+    if (jsonLoaded) {
+      const n = Object.keys(map.mappings||{}).length;
+      setChip('jsonChip', `JSON:${n}`, 'muted');
+      setChipVisible('jsonChip', true);
+    } else {
+      setChipVisible('jsonChip', false);
+    }
+
   } catch (e) {
     console.error(e);
-    setStatus(`<span class="chip bad">Hata (konsola bak)</span>`);
+    setStatus('Hata (konsol)', 'bad');
   }
 }
 
@@ -444,11 +488,11 @@ $('dl3').onclick = () => {
 
 $('go').onclick = generate;
 
-// ✅ Temizle
+// Temizle
 const resetBtn = $('reset');
 if (resetBtn) resetBtn.onclick = () => location.reload();
 
-/* ✅ Dosya adlarını üstte tek satırda göster */
+/* Dosya adlarını üstte tek satırda göster */
 function bindFileName(inputId, nameId, emptyText) {
   const inp = $(inputId);
   const out = $(nameId);
