@@ -38,6 +38,7 @@ const COLS = [
 ];
 
 const NAME_COLS = new Set(["Ürün Adı (Compel)", "Ürün Adı (Sescibaba)"]);
+const NO_CLAMP_COLS = new Set(["Marka","Stok (Compel)","Stok (Sescibaba)","EAN Durumu"]); // explicit
 
 /* ======= Üst bilgi kutusu ======= */
 function setChip(id, text, cls = '') {
@@ -239,7 +240,7 @@ function runMatching() {
   render();
 }
 
-/* ======= Metin kısaltma (sadece ürün adları) ======= */
+/* ======= Metin kısaltma (SADECE ürün adları) ======= */
 const MAX_NAME = 20;
 function clampName(s) {
   const v = (s ?? '').toString();
@@ -267,28 +268,31 @@ function colGroupPerc(widths) {
   return `<colgroup>${widths.map(w => `<col style="width:${w}%">`).join('')}</colgroup>`;
 }
 function dispColName(c) {
-  return (c === "Sıra No") ? "Sıra" : c;
+  return (c === "Sıra No") ? "Sıra" : c; // sadece burada kısaltma var
 }
 
 function render() {
-  // 12 kolon toplam %100 (EAN’lara daha geniş alan)
-  const W1 = [4,8,16,16,7,7,5,6,5,9,9,8];
+  // Başlıklar kısaltılmıyor (Sıra hariç), tamamı ortalı.
+  // EAN kolonları geniş, kayma yok.
+  const W1 = [4,9,15,15,7,7,6,6,6,9,9,7]; // toplam 100
 
   const head1 = COLS.map(c => {
     const label = dispColName(c);
-    const cls = NAME_COLS.has(c) ? 'left' : '';
-    return `<th class="${cls}" title="${esc(label)}">${esc(label)}</th>`;
+    return `<th title="${esc(label)}">${esc(label)}</th>`; // header her zaman ortalı
   }).join('');
 
   const body1 = R.map((r) => {
     return `<tr>${
       COLS.map(c => {
-        const cls = NAME_COLS.has(c) ? 'left' : '';
-        if (c === "Ürün Adı (Compel)") return `<td class="${cls}">${renderCompelCell(r)}</td>`;
-        if (c === "Ürün Adı (Sescibaba)") return `<td class="${cls}">${renderSescibabaCell(r)}</td>`;
+        // Ürün adları sola dayalı + clamp
+        if (c === "Ürün Adı (Compel)") return `<td class="left">${renderCompelCell(r)}</td>`;
+        if (c === "Ürün Adı (Sescibaba)") return `<td class="left">${renderSescibabaCell(r)}</td>`;
+
         const v = r[c] ?? '';
-        // EAN kısaltma yok (sadece normal ellipsis olabilir, ama özel clamp uygulanmıyor)
-        return `<td class="${cls}" title="${esc(v)}">${esc(v)}</td>`;
+
+        // "Marka / Stok / EAN Durumu" için özel clamp yok (zaten yok).
+        // EAN da clamp yok.
+        return `<td title="${esc(v)}">${esc(v)}</td>`;
       }).join('')
     }</tr>`;
   }).join('');
@@ -298,7 +302,7 @@ function render() {
     `<thead><tr>${head1}</tr></thead>` +
     `<tbody>${body1}</tbody>`;
 
-  // Unmatched kısmı: yoksa komple gizle
+  // Unmatched kısmı: yoksa komple gizle + buton gizle
   const sec = $('unmatchedSection');
   const btn2 = $('dl2');
 
@@ -319,11 +323,11 @@ function render() {
       `<thead><tr>
         <th title="Sıra">Sıra</th>
         <th title="Marka">Marka</th>
-        <th class="left" title="Ürün Adı">Ürün Adı</th>
-        <th title="Ürün Kodu">Kodu</th>
+        <th title="Ürün Adı">Ürün Adı</th>
+        <th title="Ürün Kodu">Ürün Kodu</th>
         <th title="EAN">EAN</th>
-        <th title="Web Servis">WS</th>
-        <th title="Tedarikçi">SUP</th>
+        <th title="Web Servis">Web Servis</th>
+        <th title="Tedarikçi">Tedarikçi</th>
         <th title=""></th>
       </tr></thead>` +
       `<tbody>${U.map((r,i)=>`
@@ -342,8 +346,7 @@ function render() {
   }
 
   const matched = R.filter(x => x._m).length;
-  const sumText = `Toplam ${R.length} • ✓${matched} • ✕${R.length - matched}`;
-  setChip('sum', sumText, 'muted');
+  setChip('sum', `Toplam ${R.length} • ✓${matched} • ✕${R.length - matched}`, 'muted');
 
   // İndir butonları
   $('dl1').disabled = !R.length;
@@ -514,19 +517,28 @@ $('go').onclick = generate;
 const resetBtn = $('reset');
 if (resetBtn) resetBtn.onclick = () => location.reload();
 
-/* Dosya adlarını üstte tek satırda göster */
-function bindFileName(inputId, nameId, emptyText) {
+/* Dosya kutularında isim sabit kalsın: dosya adı yazmayalım, sadece durum değişsin.
+   Dosya adı tooltip (title) olarak kalsın. */
+function bindFileStatus(inputId, nameId, emptyText) {
   const inp = $(inputId);
   const out = $(nameId);
   if (!inp || !out) return;
+
   const upd = () => {
-    const n = inp.files?.[0]?.name || emptyText;
-    out.textContent = n;
-    out.title = n;
+    const f = inp.files?.[0];
+    if (!f) {
+      out.textContent = emptyText;
+      out.title = emptyText;
+    } else {
+      out.textContent = 'Seçildi';
+      out.title = f.name; // dosya adı tooltip
+    }
   };
+
   inp.addEventListener('change', upd);
   upd();
 }
-bindFileName('f1','n1','Seçilmedi');
-bindFileName('f2','n2','Seçilmedi');
-bindFileName('f3','n3','Opsiyonel');
+
+bindFileStatus('f1','n1','Seçilmedi');
+bindFileStatus('f2','n2','Seçilmedi');
+bindFileStatus('f3','n3','Opsiyonel');
