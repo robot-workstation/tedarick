@@ -116,4 +116,29 @@ export function stockToNumber(raw, { source } = {}) {
   // compel: metin bazlı stok ifadeleri
   if (source === 'compel') {
     // açıkça stok yok ifadeleri
-    if (/(STOK\s*YOK|YOK|TÜKEND[İI]|TUKENDI|OUT\s*OF\s*STOCK|NONE|N*
+    if (/(STOK\s*YOK|YOK|TÜKEND[İI]|TUKENDI|OUT\s*OF\s*STOCK|NONE|N\/A|NA)/i.test(up)) return 0;
+
+    // açıkça stok var ifadeleri
+    if (/(VAR|STOKTA|MEVCUT|AVAILABLE|IN\s*STOCK|EVET|YES|TRUE)/i.test(up)) return 1;
+  }
+
+  // Sayı normalize:
+  // "1.234,00" gibi TR formatlarında "." binlik, "," ondalık olabilir
+  let t = s;
+  if (t.includes('.') && t.includes(',')) {
+    t = t.replace(/\./g, '').replace(/,/g, '.');
+  } else {
+    t = t.replace(/,/g, '.');
+  }
+
+  // "12 adet", "-5", "2.0" vb.
+  t = t.replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(t);
+  if (Number.isFinite(n)) return n;
+
+  // sayı değilse ve yukarıdaki metin kurallarına girmediyse:
+  // stok alanı dolu ama belirsiz -> 0 (yanlış pozitif istemeyiz)
+  return 0;
+}
+
+export const inStock = (raw, opts) => stockToNumber(raw, opts) > 0;
