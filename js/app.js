@@ -21,6 +21,15 @@ const key=(r,fn)=>{const b=fn(r[C1.marka]||'');const code=T(r[C1.urunKodu]||'');
 const kNew=r=>key(r,B),kOld=r=>key(r,Bx);
 const eans=v=>{v=(v??'').toString().trim();if(!v)return[];return v.split(/[^0-9]+/g).map(D).filter(x=>x.length>=8)};
 
+const colGrp=w=>`<colgroup>${w.map(x=>`<col style="width:${x}%">`).join('')}</colgroup>`;
+const disp=c=>c==="Sıra No"?"Sıra":c;
+const fmtHdr=s=>{
+  s=(s??'').toString();
+  const m=s.match(/^(.*?)(\s*\([^)]*\))\s*$/);
+  if(!m)return esc(s);
+  return `<span class="hMain">${esc(m[1].trimEnd())}</span> <span class="hParen">${esc(m[2].trim())}</span>`
+};
+
 function buildIdx(){
   idxB=new Map();idxW=new Map();idxS=new Map();
   for(const r of L2){
@@ -95,13 +104,6 @@ function runMatch(){
 }
 
 const cellName=(txt,href)=>{const v=(txt??'').toString(),u=href||'';return u?`<a class="nm" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`:`<span class="nm" title="${esc(v)}">${esc(v)}</span>`};
-const disp=c=>c==="Sıra No"?"Sıra":c;
-const fmtHdr=s=>{
-  s=(s??'').toString();
-  const m=s.match(/^(.*?)(\s*\([^)]*\))\s*$/);
-  if(!m)return esc(s);
-  return `<span class="hMain">${esc(m[1].trimEnd())}</span> <span class="hParen">${esc(m[2].trim())}</span>`
-};
 
 let _raf=0,_bound=false;
 const sched=()=>{if(_raf)cancelAnimationFrame(_raf);_raf=requestAnimationFrame(adjustNames)};
@@ -130,24 +132,24 @@ function adjustNames(){
 }
 
 function render(){
+  /* ✅ tablonun daralıp sığması için sabit % kolonlar */
+  const W1=[4,9,15,15,7,7,6,6,6,9,9,7];
   const head=COLS.map(c=>{const l=disp(c);return`<th title="${esc(l)}">${fmtHdr(l)}</th>`}).join('');
   const body=R.map(r=>`<tr>${COLS.map((c,idx)=>{
     const v=r[c]??'';
     if(c==="Ürün Adı (Compel)")return`<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
     if(c==="Ürün Adı (Sescibaba)")return`<td class="left nameCell">${cellName(v,r._seo||'')}</td>`;
-    const seq=idx===0;
-    const sd=c==="Stok Durumu",ed=c==="EAN Durumu";
-    const ean=c==="EAN (Compel)"||c==="EAN (Sescibaba)";
-    /* ✅ Sıra + Stok Durumu + EAN Durumu ALTINDAKİ DEĞERLER BOLD */
+    const seq=idx===0,sd=c==="Stok Durumu",ed=c==="EAN Durumu",ean=c==="EAN (Compel)"||c==="EAN (Sescibaba)";
     const cls=[seq?'seqCell':'',sd||ed?'statusBold':'',ean?'eanCell':''].filter(Boolean).join(' ');
     return`<td class="${cls}" title="${esc(v)}"><span class="cellTxt">${esc(v)}</span></td>`
   }).join('')}</tr>`).join('');
-  $('t1').innerHTML=`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+  $('t1').innerHTML=colGrp(W1)+`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
 
   const sec=$('unmatchedSection'),btn2=$('dl2');
   if(!U.length){sec.style.display='none';btn2.style.display='none'}else{sec.style.display='';btn2.style.display=''}
   if(U.length){
-    $('t2').innerHTML=`<thead><tr><th>Sıra</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>EAN</th><th>Web Servis</th><th>Tedarikçi</th><th></th></tr></thead><tbody>`+
+    const W2=[6,10,28,12,18,10,10,6];
+    $('t2').innerHTML=colGrp(W2)+`<thead><tr><th>Sıra</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>EAN</th><th>Web Servis</th><th>Tedarikçi</th><th></th></tr></thead><tbody>`+
       U.map((r,i)=>`<tr id="u_${i}">
         <td class="seqCell" title="${esc(r["Sıra No"])}"><span class="cellTxt">${esc(r["Sıra No"])}</span></td>
         <td title="${esc(r["Marka"])}"><span class="cellTxt">${esc(r["Marka"])}</span></td>
