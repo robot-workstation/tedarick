@@ -8,8 +8,16 @@ import {
 
 const $ = (id) => document.getElementById(id);
 
-// Marka alias
-const BRAND_ALIASES = new Map([['ALLEN & HEATH','ALLEN HEATH']]);
+// Marka alias (Compel -> Products eşleştirme)
+const BRAND_ALIASES = new Map([
+  // senin listende farklı olanlar:
+  ['ALLEN & HEATH', 'ALLEN HEATH'],
+  ['MARANTZ PROFESSIONAL', 'MARANTZ'],
+  ['RUPERT NEVE DESIGNS', 'RUPERT NEVE'],
+  ['RØDE', 'RODE'],
+  ['RØDE X', 'RODE'],
+]);
+
 const bRaw = (s) => (s ?? '').toString().trim().toLocaleUpperCase(TR).replace(/\s+/g,' ');
 const B = (s) => BRAND_ALIASES.get(bRaw(s)) || bRaw(s);
 const Bx = (s) => bRaw(s); // alias yok (eski JSON key uyumu)
