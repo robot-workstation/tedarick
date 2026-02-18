@@ -94,11 +94,12 @@ function findByMap(r1) {
   return (ws && idxW.get(ws)) || (sup && idxS.get(sup)) || null;
 }
 
+// İstenen kural: stok var/yok karşılaştır (products'ta "-" => yok)
 function stokDurumu(compelStokRaw, prodStokRaw, matched) {
   if (!matched) return '—';
   const a = inStock(compelStokRaw, { source: 'compel' });
   const b = inStock(prodStokRaw, { source: 'products' }); // products: "-" => stok yok
-  return (a === b) ? 'doğru' : 'hatalı';
+  return (a === b) ? 'Doğru' : 'Hatalı';
 }
 
 function outRow(r1, r2, how) {
@@ -137,13 +138,12 @@ function runMatching() {
 }
 
 function render() {
-  // Results table
+  // Results table (ikon yok -> sadece metin)
   $('t1').innerHTML =
     `<thead><tr>${COLS.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>` +
     `<tbody>${R.map(r=>{
       return `<tr>${COLS.map(c=>{
-        let v = r[c] ?? '';
-        if (c === 'Stok Durumu' && v !== '—') v = (v === 'doğru') ? '✅ doğru' : '❌ hatalı';
+        const v = r[c] ?? '';
         return `<td>${esc(v)}</td>`;
       }).join('')}</tr>`;
     }).join('')}</tbody>`;
