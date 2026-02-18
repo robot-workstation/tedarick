@@ -98,16 +98,22 @@ export async function readFileText(file) {
   });
 }
 
-// Stok parse: products tarafında "-" => 0 (stok yok)
-export function stockToNumber(raw, { source }) {
+/**
+ * Stok parse:
+ * - products tarafında "-" => 0 (stok yok)
+ * - compel tarafında "VAR/STOKTA/MEVCUT" gibi metinler => stok var kabul edilir
+ * - sayısal değerler her iki tarafta da parse edilir
+ */
+export function stockToNumber(raw, { source } = {}) {
   const s = (raw ?? '').toString().trim();
   if (!s) return 0;
+
+  // products: "-" => stok yok
   if (source === 'products' && s === '-') return 0;
 
-  // "12", "12,0", "12 adet", "-5" vb.
-  const cleaned = s.replace(',', '.').replace(/[^0-9.\-]/g, '');
-  const n = parseFloat(cleaned);
-  return Number.isFinite(n) ? n : 0;
-}
+  const up = s.toLocaleUpperCase(TR);
 
-export const inStock = (raw, opts) => stockToNumber(raw, opts) > 0;
+  // compel: metin bazlı stok ifadeleri
+  if (source === 'compel') {
+    // açıkça stok yok ifadeleri
+    if (/(STOK\s*YOK|YOK|TÜKEND[İI]|TUKENDI|OUT\s*OF\s*STOCK|NONE|N*
