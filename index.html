@@ -10,62 +10,63 @@
     body{
       margin:0;height:100vh;overflow:hidden;display:flex;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      background:#0b0d12;color:#eaeef7
+      background:#0b0d12;color:#eaeef7;
+      font-size:14px; /* genel font biraz büyüdü */
     }
 
-    /* Layout */
-    main{
-      flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden
-    }
+    main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+
     header.topbar{
-      padding:8px;border-bottom:1px solid #1f2430;
-      background:#0b0d12;flex:0 0 auto
-    }
-    .controls{
-      display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center
+      padding:8px;border-bottom:1px solid #1f2430;background:#0b0d12;flex:0 0 auto
     }
 
-    /* Buttons + inputs theme */
+    .controls{
+      display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+      justify-content:flex-start;
+    }
+
     button,.file{
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
-      font-weight:700;font-size:12px
+      font-weight:800;font-size:13px
     }
+
     button{
-      padding:7px 10px;cursor:pointer;line-height:1
+      padding:10px 12px; /* Listele/Temizle biraz daha yüksek */
+      cursor:pointer;line-height:1
     }
     button:hover{background:#1f2a44;border-color:#6b7da6}
     button:disabled{opacity:.55;cursor:not-allowed}
     button:disabled:hover{background:#111827;border-color:#2a3140}
 
-    /* Custom file picker (tek satır + kısaltma) */
+    /* Compact file picker (tek satır + kısaltma) */
     .file{
-      display:flex;align-items:center;gap:8px;padding:6px 10px;height:34px;
+      display:flex;align-items:center;gap:8px;padding:8px 10px;height:38px;
       user-select:none;cursor:pointer;max-width:520px
     }
     .file input{display:none}
     .fbtn{white-space:nowrap}
     .fname{
-      font-weight:600;opacity:.9;font-size:12px;
+      font-weight:700;opacity:.92;font-size:13px;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      max-width:240px
+      max-width:220px
     }
 
     .spacer{flex:1 1 auto;min-width:6px}
 
-    /* Chips / status bar */
+    /* Bilgi kutusu (Temizle yanında) */
     .ibox{
-      margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;
-      padding:6px 10px;border:1px solid #1f2430;border-radius:10px;background:#0f1320
+      display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+      padding:7px 10px;border:1px solid #1f2430;border-radius:10px;background:#0f1320
     }
     .chip{
-      padding:2px 8px;border:1px solid #2a3140;border-radius:999px;background:#0b0d12;
+      padding:3px 9px;border:1px solid #2a3140;border-radius:999px;background:#0b0d12;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
-      font-weight:800;font-size:12px;line-height:1.25
+      font-weight:900;font-size:13px;line-height:1.2
     }
     .chip.ok{color:#86efac}
     .chip.bad{color:#fca5a5}
     .chip.unk{color:#fcd34d}
-    .chip.muted{opacity:.85;font-weight:700}
+    .chip.muted{opacity:.88;font-weight:800}
 
     /* Panels */
     section.panel{
@@ -75,32 +76,32 @@
     section.panel.unmatched{flex:1 1 0}
 
     .panelHead{
-      display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between
+      display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-start
     }
-    .headLeft,.headRight{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
     /* Table */
     .tableWrap{
       flex:1;min-height:0;overflow:auto;
+      overflow-x:hidden; /* sağa-sola kayma yok */
       border:1px solid #1f2430;border-radius:12px;background:#0f1320
     }
-    table{
-      width:100%;border-collapse:collapse;table-layout:fixed
-    }
+
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+
     th,td{
       border-bottom:1px solid #1f2430;
-      padding:6px 8px;
+      padding:9px 8px; /* satır arası biraz açıldı */
       text-align:center;
       vertical-align:middle;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      font-size:12px;
-      line-height:1.15
+      font-size:13px;
+      line-height:1.2
     }
     th{
       position:sticky;top:0;z-index:2;
-      background:#0b0d12;font-weight:900
+      background:#0b0d12;font-weight:1000
     }
     tbody tr:hover{background:#111827}
 
@@ -111,20 +112,16 @@
     }
     a:hover{text-decoration:underline}
 
-    /* Unmatched inputs */
     input[type=text]{
       width:100%;min-width:78px;box-sizing:border-box;
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
-      padding:6px 8px;font-weight:700;font-size:12px;line-height:1
+      padding:8px 9px;font-weight:800;font-size:13px;line-height:1
     }
     input[type=text]:focus{outline:none;border-color:#6b7da6}
 
-    /* Small screens */
-    @media (max-width:900px){
+    @media (max-width:980px){
       .fname{max-width:160px}
-      button{padding:7px 9px}
-      section.panel.results{flex:1.3 1 0}
-      section.panel.unmatched{flex:1 1 0}
+      button{padding:10px 11px}
     }
   </style>
 </head>
@@ -151,8 +148,17 @@
         <input id="f3" type="file" accept=".json,application/json">
       </label>
 
-      <button id="go">Generate</button>
+      <button id="go">Listele</button>
       <button id="reset" title="Her şeyi sıfırla">Temizle</button>
+
+      <!-- Bilgi kutusu: Temizle yanında -->
+      <div class="ibox" id="infoBox">
+        <span class="chip ok" id="stChip">Hazır</span>
+        <span class="chip" id="l1Chip" title="L1">L1:-</span>
+        <span class="chip" id="l2Chip" title="L2">L2:-</span>
+        <span class="chip muted" id="sum" title="Özet">Toplam 0 • ✓0 • ✕0</span>
+        <span class="chip muted" id="jsonChip" style="display:none"></span>
+      </div>
 
       <div class="spacer"></div>
 
@@ -160,23 +166,11 @@
       <button id="dl2" disabled>Eşleşmeyen CSV</button>
       <button id="dl3" disabled>JSON</button>
     </div>
-
-    <div class="ibox" id="st">
-      <span class="chip ok">Hazır</span>
-      <span class="chip muted">Alias: Allen &amp; Heath → Allen Heath</span>
-      <span class="chip muted">products stok “-” = yok</span>
-    </div>
   </header>
 
   <section class="panel results">
     <div class="panelHead">
-      <div class="headLeft">
-        <span class="chip">Sonuçlar</span>
-        <span class="chip muted" id="sum">Toplam 0 • ✓0 • ✕0</span>
-      </div>
-      <div class="headRight">
-        <span class="chip muted">Hücreler tek satır • taşanlar “…”</span>
-      </div>
+      <span class="chip">Sonuç Listesi</span>
     </div>
     <div class="tableWrap">
       <table id="t1"></table>
@@ -185,10 +179,8 @@
 
   <section class="panel unmatched">
     <div class="panelHead">
-      <div class="headLeft">
-        <span class="chip">Eşleşmeyenler</span>
-        <span class="chip muted">Manuel: ws / sup gir → Eşleştir</span>
-      </div>
+      <span class="chip">Eşleşmeyenler</span>
+      <span class="chip muted">Manuel: ws / sup gir → Eşleştir</span>
     </div>
     <div class="tableWrap">
       <table id="t2"></table>
