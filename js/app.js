@@ -23,10 +23,18 @@ let R = [], U = [];
 
 const COLS = [
   "Sıra No","Marka","Ürün Adı (Compel)","Ürün Adı (Sescibaba)","Ürün Kodu (Compel)",
+  "Web Servis Kodu","Tedarikçi Ürün Kodu",
   "Stok (Compel)","Stok (Sescibaba)","Stok Durumu","EAN (Compel)","EAN/Barkod (Sescibaba)"
 ];
 
 const setStatus = (html) => { $('st').innerHTML = html; };
+
+const safeUrl = (u) => {
+  u = T(u);
+  if (!u) return '';
+  if (/^\s*javascript:/i.test(u)) return '';
+  return u;
+};
 
 const key = (r, brandFn) => {
   const b = brandFn(r[C1.marka] || '');
@@ -94,7 +102,7 @@ function findByMap(r1) {
   return (ws && idxW.get(ws)) || (sup && idxS.get(sup)) || null;
 }
 
-// İstenen kural: stok var/yok karşılaştır (products'ta "-" => yok)
+// stok var/yok karşılaştır (products'ta "-" => yok)
 function stokDurumu(compelStokRaw, prodStokRaw, matched) {
   if (!matched) return '—';
   const a = inStock(compelStokRaw, { source: 'compel' });
@@ -106,12 +114,21 @@ function outRow(r1, r2, how) {
   const s1 = T(r1[C1.stok] || '');
   const s2 = r2 ? T(r2[C2.stok] || '') : '';
 
+  const ws = r2 ? T(r2[C2.ws] || '') : '';
+  const sup = r2 ? T(r2[C2.sup] || '') : '';
+  const seo = r2 ? safeUrl(r2[C2.seo] || '') : '';
+  const clink = safeUrl(r1[C1.link] || '');
+
   return {
     "Sıra No": T(r1[C1.siraNo] || ''),
     "Marka": T(r1[C1.marka] || ''),
     "Ürün Adı (Compel)": T(r1[C1.urunAdi] || ''),
     "Ürün Adı (Sescibaba)": r2 ? T(r2[C2.urunAdi] || '') : '',
     "Ürün Kodu (Compel)": T(r1[C1.urunKodu] || ''),
+
+    "Web Servis Kodu": ws,
+    "Tedarikçi Ürün Kodu": sup,
+
     "Stok (Compel)": s1,
     "Stok (Sescibaba)": s2,
     "Stok Durumu": stokDurumu(s1, s2, !!r2),
@@ -121,7 +138,9 @@ function outRow(r1, r2, how) {
     _m: !!r2,
     _how: r2 ? how : '',
     _k: kNew(r1),
-    _bn: B(r1[C1.marka] || '')
+    _bn: B(r1[C1.marka] || ''),
+    _seo: seo,
+    _clink: clink
   };
 }
 
@@ -137,16 +156,59 @@ function runMatching() {
   render();
 }
 
+function renderCompelCell(r, i) {
+  const name = r["Ürün Adı (Compel)"] ?? '';
+  const link = r._clink || '';
+  if (!link) return esc(name);
+
+  return `
+    <div>
+      <a href="#" class="cname" data-i="${i}">${esc(name)}</a>
+      <div id="cl_${i}" style="display:none;margin-top:4px">
+        <a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderSescibabaCell(r) {
+  const name = r["Ürün Adı (Sescibaba)"] ?? '';
+  const seo = r._seo || '';
+  if (!seo) return esc(name);
+
+  return `
+    <div>
+      <div>${esc(name)}</div>
+      <div style="margin-top:4px">
+        <a href="${esc(seo)}" target="_blank" rel="noopener" title="${esc(seo)}">SEO Link</a>
+      </div>
+    </div>
+  `;
+}
+
 function render() {
-  // Results table (ikon yok -> sadece metin)
+  // Results table
   $('t1').innerHTML =
     `<thead><tr>${COLS.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>` +
-    `<tbody>${R.map(r=>{
+    `<tbody>${R.map((r,i)=>{
       return `<tr>${COLS.map(c=>{
+        if (c === "Ürün Adı (Compel)") return `<td>${renderCompelCell(r,i)}</td>`;
+        if (c === "Ürün Adı (Sescibaba)") return `<td>${renderSescibabaCell(r)}</td>`;
         const v = r[c] ?? '';
         return `<td>${esc(v)}</td>`;
       }).join('')}</tr>`;
     }).join('')}</tbody>`;
+
+  // Compel isim click -> link toggle
+  $('t1').querySelectorAll('.cname').forEach(a => {
+    a.onclick = (e) => {
+      e.preventDefault();
+      const i = +a.dataset.i;
+      const box = $('t1').querySelector('#cl_' + i);
+      if (!box) return;
+      box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
+    };
+  });
 
   // Unmatched table
   $('t2').innerHTML =
@@ -206,7 +268,8 @@ function manualMatch(i) {
       [C1.urunAdi]: r["Ürün Adı (Compel)"],
       [C1.urunKodu]: r["Ürün Kodu (Compel)"],
       [C1.stok]: r["Stok (Compel)"],
-      [C1.ean]: r["EAN (Compel)"]
+      [C1.ean]: r["EAN (Compel)"],
+      [C1.link]: r._clink || ''
     };
     const upd = outRow(r1stub, r2, 'MANUAL');
     upd._k = r._k; upd._bn = b1;
@@ -252,7 +315,8 @@ async function generate() {
       urunAdi: pickColumn(s1, ['Ürün Adı','Urun Adi','Ürün Adi']),
       urunKodu: pickColumn(s1, ['Ürün Kodu','Urun Kodu']),
       stok: pickColumn(s1, ['Stok']),
-      ean: pickColumn(s1, ['EAN','Ean'])
+      ean: pickColumn(s1, ['EAN','Ean']),
+      link: pickColumn(s1, ['Link','LINK','Ürün Linki','Urun Linki'])
     };
 
     C2 = {
@@ -261,12 +325,13 @@ async function generate() {
       sup: pickColumn(s2, ['Tedarikçi Ürün Kodu','Tedarikci Urun Kodu','Tedarikçi Urun Kodu']),
       barkod: pickColumn(s2, ['Barkod','BARKOD']),
       stok: pickColumn(s2, ['Stok']),
-      marka: pickColumn(s2, ['Marka'])
+      marka: pickColumn(s2, ['Marka']),
+      seo: pickColumn(s2, ['SEO Link','Seo Link','SEO','Seo'])
     };
 
     const need = (o, arr) => arr.filter(k => !o[k]);
-    const m1 = need(C1, ['siraNo','marka','urunAdi','urunKodu','stok','ean']);
-    const m2 = need(C2, ['ws','sup','barkod','stok','marka','urunAdi']);
+    const m1 = need(C1, ['siraNo','marka','urunAdi','urunKodu','stok','ean','link']);
+    const m2 = need(C2, ['ws','sup','barkod','stok','marka','urunAdi','seo']);
     if (m1.length || m2.length) {
       return setStatus(`<small style="color:#c33">Sütun bulunamadı. L1: ${m1.join(', ')} • L2: ${m2.join(', ')}</small>`);
     }
