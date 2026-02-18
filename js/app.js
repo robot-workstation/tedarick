@@ -36,6 +36,23 @@ const safeUrl = (u) => {
   return u;
 };
 
+// products.csv SEO Link: sitesiz path -> absolute link
+const SEO_BASE = 'https://www.sescibaba.com/';
+const normalizeSeoUrl = (raw) => {
+  let u = T(raw);
+  if (!u) return '';
+  if (/^\s*javascript:/i.test(u)) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+
+  // "www." ya da "sescibaba.com/..." gibi gelirse
+  if (/^www\./i.test(u)) return 'https://' + u;
+  if (/^sescibaba\.com/i.test(u)) return 'https://' + u;
+
+  // "/urun/..." ya da "urun/..." gibi gelirse
+  u = u.replace(/^\/+/, '');
+  return SEO_BASE + u;
+};
+
 const key = (r, brandFn) => {
   const b = brandFn(r[C1.marka] || '');
   const code = T(r[C1.urunKodu] || '');
@@ -116,7 +133,7 @@ function outRow(r1, r2, how) {
 
   const ws = r2 ? T(r2[C2.ws] || '') : '';
   const sup = r2 ? T(r2[C2.sup] || '') : '';
-  const seo = r2 ? safeUrl(r2[C2.seo] || '') : '';
+  const seoAbs = r2 ? safeUrl(normalizeSeoUrl(r2[C2.seo] || '')) : '';
   const clink = safeUrl(r1[C1.link] || '');
 
   return {
@@ -139,7 +156,7 @@ function outRow(r1, r2, how) {
     _how: r2 ? how : '',
     _k: kNew(r1),
     _bn: B(r1[C1.marka] || ''),
-    _seo: seo,
+    _seo: seoAbs,
     _clink: clink
   };
 }
@@ -156,19 +173,13 @@ function runMatching() {
   render();
 }
 
-function renderCompelCell(r, i) {
+function renderCompelCell(r) {
   const name = r["Ürün Adı (Compel)"] ?? '';
   const link = r._clink || '';
   if (!link) return esc(name);
 
-  return `
-    <div>
-      <a href="#" class="cname" data-i="${i}">${esc(name)}</a>
-      <div id="cl_${i}" style="display:none;margin-top:4px">
-        <a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>
-      </div>
-    </div>
-  `;
+  // Ürün adına tıklayınca yeni sekmede Compel linki açılsın
+  return `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(name)}</a>`;
 }
 
 function renderSescibabaCell(r) {
@@ -176,39 +187,22 @@ function renderSescibabaCell(r) {
   const seo = r._seo || '';
   if (!seo) return esc(name);
 
-  return `
-    <div>
-      <div>${esc(name)}</div>
-      <div style="margin-top:4px">
-        <a href="${esc(seo)}" target="_blank" rel="noopener" title="${esc(seo)}">SEO Link</a>
-      </div>
-    </div>
-  `;
+  // Ürün adına tıklayınca yeni sekmede SEO link açılsın
+  return `<a href="${esc(seo)}" target="_blank" rel="noopener" title="${esc(seo)}">${esc(name)}</a>`;
 }
 
 function render() {
   // Results table
   $('t1').innerHTML =
     `<thead><tr>${COLS.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>` +
-    `<tbody>${R.map((r,i)=>{
+    `<tbody>${R.map((r)=>{
       return `<tr>${COLS.map(c=>{
-        if (c === "Ürün Adı (Compel)") return `<td>${renderCompelCell(r,i)}</td>`;
+        if (c === "Ürün Adı (Compel)") return `<td>${renderCompelCell(r)}</td>`;
         if (c === "Ürün Adı (Sescibaba)") return `<td>${renderSescibabaCell(r)}</td>`;
         const v = r[c] ?? '';
         return `<td>${esc(v)}</td>`;
       }).join('')}</tr>`;
     }).join('')}</tbody>`;
-
-  // Compel isim click -> link toggle
-  $('t1').querySelectorAll('.cname').forEach(a => {
-    a.onclick = (e) => {
-      e.preventDefault();
-      const i = +a.dataset.i;
-      const box = $('t1').querySelector('#cl_' + i);
-      if (!box) return;
-      box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
-    };
-  });
 
   // Unmatched table
   $('t2').innerHTML =
