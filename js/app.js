@@ -68,7 +68,7 @@ function byMap(r1){
   return(ws&&idxW.get(ws))||(sup&&idxS.get(sup))||null
 }
 
-/* ✅ İstenen yeni stok label’ları: "Stokta Var / Stokta Yok" */
+/* ✅ Stok label’ları: "Stokta Var / Stokta Yok" */
 const compelLbl=raw=>{
   const s=(raw??'').toString().trim();
   if(!s)return'';
@@ -94,7 +94,6 @@ function outRow(r1,r2,how){
     "Ürün Adı (Compel)":T(r1[C1.urunAdi]||''),"Ürün Adı (Sescibaba)":r2?T(r2[C2.urunAdi]||''):'',
     "Ürün Kodu (Compel)":T(r1[C1.urunKodu]||''),"Ürün Kodu (Sescibaba)":sup,
 
-    /* ✅ Yeni metinler */
     "Stok (Compel)":compelLbl(s1raw),
     "Stok (Sescibaba)":sesciLbl(s2raw,!!r2),
     "Stok Durumu":stokDur(s1raw,s2raw,!!r2),
@@ -227,6 +226,22 @@ function manual(i){
   U.splice(i,1);render()
 }
 
+/* ✅ Listele → Temizle toggle */
+const goBtn=$('go');
+const setGoMode=(mode)=>{
+  if(!goBtn)return;
+  if(mode==='clear'){
+    goBtn.dataset.mode='clear';
+    goBtn.textContent='Temizle';
+    goBtn.title='Temizle';
+  }else{
+    goBtn.dataset.mode='list';
+    goBtn.textContent='Listele';
+    goBtn.title='Listele';
+  }
+};
+setGoMode('list');
+
 async function generate(){
   const a=$('f1').files[0],b=$('f2').files[0],j=$('f3').files[0];
   if(!a||!b)return alert('Lütfen 1) ve 2) CSV dosyalarını seç.');
@@ -264,7 +279,10 @@ async function generate(){
     buildIdx();runMatch();
     setStatus('Hazır','ok');setChip('l1Chip',`L1:${L1.length}`);setChip('l2Chip',`L2:${L2.length}/${L2all.length}`);
 
-    if(jsonLoaded){const n=Object.keys(map.mappings||{}).length;setChip('jsonChip',`JSON:${n}`,'muted');chipVis('jsonChip',true)}else chipVis('jsonChip',false)
+    if(jsonLoaded){const n=Object.keys(map.mappings||{}).length;setChip('jsonChip',`JSON:${n}`,'muted');chipVis('jsonChip',true)}else chipVis('jsonChip',false);
+
+    /* ✅ Listeleme bitti → buton Temizle olsun */
+    setGoMode('clear');
   }catch(e){console.error(e);setStatus('Hata (konsol)','bad')}
 }
 
@@ -272,7 +290,13 @@ $('dl1').onclick=()=>{const clean=R.map(r=>Object.fromEntries(COLS.map(c=>[c,r[c
 $('dl2').onclick=()=>{const cols=["Sıra No","Marka","Ürün Adı (Compel)","Ürün Kodu (Compel)","Stok (Compel)","EAN (Compel)"];const clean=U.map(r=>Object.fromEntries(cols.map(c=>[c,r[c]])));downloadBlob('eslesmeyenler.csv',new Blob([toCSV(clean,cols)],{type:'text/csv;charset=utf-8'}))};
 $('dl3').onclick=()=>{map.meta=map.meta||{};map.meta.updatedAt=nowISO();downloadBlob('mapping.json',new Blob([JSON.stringify(map,null,2)],{type:'application/json;charset=utf-8'}))};
 
-$('go').onclick=generate;
+/* ✅ Tek buton davranışı */
+if(goBtn){
+  goBtn.onclick=async()=>{
+    if(goBtn.dataset.mode==='clear') return location.reload();
+    await generate();
+  };
+}
 
 /* reset butonu yoksa hata verme */
 const _r=$('reset');
