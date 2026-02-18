@@ -16,18 +16,19 @@ button:disabled{opacity:.55;cursor:not-allowed}button:disabled:hover{background:
 .chip.ok{color:#86efac}.chip.bad{color:#fca5a5}.chip.unk{color:#fcd34d}.chip.muted{opacity:.88;font-weight:900}
 .panel{padding:8px;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .results{flex:2 1 0}.unmatched{flex:1 1 0}
-.tableWrap{flex:1;min-height:0;overflow:auto;overflow-x:hidden;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.tableWrap{flex:1;min-height:0;overflow:auto;border:1px solid #1f2430;border-radius:12px;background:#0f1320} /* ✅ x scroll gerektiğinde açılır */
+table{border-collapse:collapse;table-layout:auto;width:max-content;min-width:100%} /* ✅ başlık kısıtlamasız, gerekirse genişler */
 th,td{border-bottom:1px solid #1f2430;padding:10px 8px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:1.1}
-th{position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;overflow:visible;text-overflow:clip}
+th{position:sticky;top:0;z-index:2;background:#0b0d12;font-weight:1100;overflow:visible;text-overflow:clip} /* ✅ başlıklar kısıtlanmaz */
 tbody tr:hover{background:#111827}
 .left{text-align:left!important}
-.hMain{font-weight:1100}.hParen{font-size:12px;font-weight:400;opacity:.9}
+.hMain{font-weight:1100}.hParen{font-size:12px;font-weight:400;opacity:.9} /* ✅ parantez kısmı 2 birim küçük, bold değil */
 .cellTxt{display:inline-block}
 td.nameCell{overflow:visible;text-overflow:clip;position:relative;z-index:1}
 td.nameCell .nm{display:inline-block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:9999px;position:relative;z-index:3}
 td.eanCell{overflow:visible;text-overflow:clip}
-td.seqCell{font-weight:1100}td.statusBold{font-weight:1100}
+td.seqCell{font-weight:1100} /* ✅ Sıra altı bold */
+td.statusBold{font-weight:1100} /* ✅ Stok Durumu + EAN Durumu altı bold */
 a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
 input[type=text]{width:100%;min-width:78px;box-sizing:border-box;height:36px;background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;padding:0 10px;font-weight:900;font-size:14px;line-height:1;display:flex;align-items:center}
 input[type=text]:focus{outline:none;border-color:#6b7da6}
