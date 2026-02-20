@@ -3,7 +3,6 @@ export async function loadBrands(API_BASE){
   if(!r.ok)throw new Error(`API /api/brands hata: ${r.status}`);
   return await r.json()
 }
-
 export async function scanCompel(API_BASE,brands,{signal,onMessage}={}){
   const r=await fetch(`${API_BASE}/api/scan`,{
     method:'POST',headers:{'content-type':'application/json'},
