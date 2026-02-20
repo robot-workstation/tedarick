@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini: T-Soft ↔ Aide</title>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b0d12;color:#eaeef7}
+    .wrap{display:flex;gap:12px;padding:12px;flex-wrap:wrap}
+    .card{border:1px solid #2a3140;background:#0f1320;border-radius:12px;padding:12px;flex:1 1 360px;min-width:320px}
+    h3{margin:0 0 10px;font-size:16px}
+    label{display:block;font-weight:800;margin:10px 0 6px}
+    input[type="file"], input[type="text"], textarea{
+      width:100%;box-sizing:border-box;background:#0b0d12;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;padding:10px
+    }
+    textarea{min-height:150px;resize:vertical}
+    button{
+      background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
+      padding:9px 12px;font-weight:900;cursor:pointer
+    }
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .muted{opacity:.85;font-size:12px}
+    .ok{color:#86efac}
+    .bad{color:#fca5a5}
+    .brands{max-height:240px;overflow:auto;border:1px solid #2a3140;border-radius:10px;padding:8px;background:#0b0d12}
+    .brandItem{display:flex;gap:8px;align-items:center;padding:4px 2px}
+    .brandItem small{opacity:.8}
+    .gridWrap{max-height:160px;overflow:auto;border:1px solid #2a3140;border-radius:10px;background:#0b0d12}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #1f2430;padding:4px 6px;text-align:left;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    th{position:sticky;top:0;background:#0f1320;font-size:10.5px}
+    .results{max-height:360px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="card">
+      <h3>1) Compel Markalar (Worker’dan)</h3>
+      <div class="row">
+        <input id="brandSearch" type="text" placeholder="Marka ara..." />
+        <button id="brandClear" type="button">Seçimi Temizle</button>
+      </div>
+      <div class="muted" id="brandInfo" style="margin:8px 0 8px">Yükleniyor…</div>
+      <div class="brands" id="brandList"></div>
+    </div>
+
+    <div class="card">
+      <h3>2) T-Soft + Aide</h3>
+
+      <label>T-Soft products.csv yükle</label>
+      <input id="tsoftFile" type="file" accept=".csv,text/csv,.txt,text/plain" />
+      <div class="muted" id="tsoftInfo">—</div>
+
+      <label style="margin-top:14px">Aide verisini yapıştır</label>
+      <textarea id="aidePaste" placeholder="Aide stok listesini kopyalayıp buraya yapıştır..."></textarea>
+
+      <div class="row" style="margin-top:10px">
+        <button id="aideLoad" type="button" disabled>Aide Yükle</button>
+        <span class="muted" id="aideInfo">—</span>
+      </div>
+
+      <label style="margin-top:14px">Aide CSV Önizleme (küçük)</label>
+      <div class="gridWrap">
+        <table id="aidePreview">
+          <thead><tr id="aidePrevHead"></tr></thead>
+          <tbody id="aidePrevBody"></tbody>
+        </table>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button id="run" type="button" disabled>Sonucu Üret</button>
+        <span class="muted" id="runInfo">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>3) Sonuç: Depo Ürün Adı</h3>
+      <div class="muted" id="outInfo">—</div>
+      <div class="gridWrap results" style="margin-top:10px">
+        <table id="outTable">
+          <thead>
+            <tr>
+              <th style="width:60px">Sıra</th>
+              <th style="width:160px">Marka</th>
+              <th>Depo Ürün Adı (Model)</th>
+              <th style="width:140px">Stok Kodu</th>
+            </tr>
+          </thead>
+          <tbody id="outBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(() => {
+  const API_BASE = "https://robot-workstation.tvkapora.workers.dev";
+  const TR = "tr-TR";
+  const $ = (id) => document.getElementById(id);
+
+  const T = (s) => (s ?? "").toString().trim();
+  const bNorm = (s) => (s ?? "").toString().replace(/\u00A0/g," ").trim().toLocaleUpperCase(TR).replace(/\s+/g," ");
+  const isBadBrand = (raw) => {
+    const s = T(raw);
+    return !s || s === "-" || s === "—" || s.toLocaleUpperCase(TR) === "N/A";
+  };
+
+  const codeNorm = (s) => (s ?? "").toString().replace(/\u00A0/g," ").trim().replace(/\s+/g," ").toLocaleUpperCase(TR);
+  const codeAlt = (n) => {
+    const k = codeNorm(n);
+    if (!k) return "";
+    if (!/^[0-9]+$/.test(k)) return "";
+    return k.replace(/^0+(?=\d)/, "");
+  };
+
+  function detectDelimiter(h){
+    const c = ["\t",";",",","|"];
+    let best = c[0], m = -1;
+    for (const d of c){
+      const k = h.split(d).length - 1;
+      if (k > m){ m = k; best = d; }
+    }
+    return best;
+  }
+
+  function parseDelimited(text){
+    const lines = (text ?? "").toString().replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n");
+    const first = lines.find(x => x.trim()) || "";
+    const delim = detectDelimiter(first);
+
+    const split = (line) => {
+      const out=[]; let cur="", q=false;
+      for (let i=0;i<line.length;i++){
+        const ch=line[i];
+        if (ch === '"'){
+          if (q && line[i+1] === '"'){ cur+='"'; i++; }
+          else q = !q;
+        } else if (!q && ch === delim){
+          out.push(cur); cur="";
+        } else cur += ch;
+      }
+      out.push(cur);
+      return out.map(v => v.trim());
+    };
+
+    let hdr=null, rows=[];
+    for (const line of lines){
+      if (!line || !line.trim()) continue;
+      if (!hdr){ hdr = split(line); continue; }
+      const vals = split(line), obj = {};
+      for (let i=0;i<hdr.length;i++) obj[hdr[i]] = vals[i] ?? "";
+      rows.push(obj);
+    }
+    return { hdr: hdr || [], rows };
+  }
+
+  const normHeader = (h) => (h ?? "").toString().trim().toLocaleUpperCase(TR).replace(/\s+/g," ");
+  const pickColumn = (rowObj, wanted) => {
+    const map = new Map(Object.keys(rowObj).map(k => [normHeader(k), k]));
+    for (const w of wanted){ const k = map.get(normHeader(w)); if (k) return k; }
+    return null;
+  };
+
+  async function readFileText(file){
+    return new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.onerror = () => rej(fr.error);
+      fr.readAsText(file, "UTF-8");
+    });
+  }
+
+  // Aide noisy paste (senin formatına uygun)
+  function depotFromNoisyPaste(text){
+    const FirmaDefault = "Sescibaba";
+    const N = s => !s || /^(Tümü|Sesçibaba Logo|Şirketler|Siparişler|Onay Bekleyen|Sipariş Listesi|İade Listesi|Sesçibaba Stokları|Stok Listesi|Ara|Previous|Next|E-Commerce Management.*|Showing\b.*|Marka\s+Model\s+Stok\s+Kodu.*|\d+)$/.test(s);
+
+    const out=[];
+    const lines = (text || "").split(/\r\n|\r|\n/);
+
+    for (let l of lines){
+      l = (l || "").replace(/\u00A0/g," ").trim();
+      if (N(l)) continue;
+      if (!l.includes("\t")) continue;
+
+      const a = l.split("\t").map(x => x.trim()).filter(x => x !== "");
+      if (a.length < 6) continue;
+
+      let m="", mo="", k="", ac="", s="", w="", f=FirmaDefault;
+
+      if (a.length === 6){
+        m=a[0]; mo=a[1]; k=a[2]; ac=a[3]; s=a[4]; w=a[5];
+      } else {
+        m = a[0];
+        f = a.at(-1) || FirmaDefault;
+        w = a.at(-2) || "";
+        s = a.at(-3) || "";
+        const mid = a.slice(1, -3);
+        if (mid.length < 3) continue;
+        mo = mid.slice(0, -2).join(" ");
+        k = mid.at(-2) || "";
+        ac = mid.at(-1) || "";
+      }
+
+      if (!k || !mo) continue;
+
+      out.push({
+        "Marka": m,
+        "Model": mo,
+        "Stok Kodu": k,
+        "Açıklama": ac,
+        "Stok": s,
+        "Ambar": w,
+        "Firma": f
+      });
+    }
+    return out;
+  }
+
+  function parseAide(text){
+    const raw = (text ?? "").toString();
+    if (!raw.trim()) return { ok:false, rows:[], C:null, mode:"empty" };
+
+    // 1) delimited dene
+    try{
+      const p = parseDelimited(raw);
+      if (p.rows?.length){
+        const s = p.rows[0];
+        const stokKodu = pickColumn(s, ["Stok Kodu","STOK KODU","Stock Code","StokKodu"]);
+        const marka = pickColumn(s, ["Marka","MARKA","Brand"]);
+        const model = pickColumn(s, ["Model","MODEL"]);
+        if (stokKodu && marka && model){
+          return { ok:true, rows:p.rows, C:{stokKodu, marka, model}, mode:"delimited" };
+        }
+      }
+    } catch {}
+
+    // 2) noisy fallback
+    const rows2 = depotFromNoisyPaste(raw);
+    if (!rows2.length) return { ok:false, rows:[], C:null, mode:"fail" };
+    return { ok:true, rows:rows2, C:{stokKodu:"Stok Kodu", marka:"Marka", model:"Model"}, mode:"noisy" };
+  }
+
+  // ---------- UI State ----------
+  let BRANDS = [];
+  let SELECTED = new Set(); // brand names normalized
+  let TSOFT = { ok:false, rows:[], C:null };
+  let AIDE = { ok:false, rows:[], C:null, csvRows:[] };
+
+  function updateRunEnabled(){
+    const can = (TSOFT.ok && AIDE.ok && SELECTED.size > 0);
+    $("run").disabled = !can;
+    $("runInfo").textContent = can ? "Hazır" : "T-Soft + Aide + en az 1 marka seç";
+  }
+
+  // ---------- Brands ----------
+  async function loadBrands(){
+    $("brandInfo").textContent = "Yükleniyor…";
+    try{
+      const res = await fetch(`${API_BASE}/api/brands`, { cache:"no-store" });
+      if (!res.ok) throw new Error("brands api " + res.status);
+      BRANDS = await res.json();
+      renderBrandList();
+      $("brandInfo").innerHTML = `<span class="ok">Yüklendi</span> • ${BRANDS.length} marka`;
+    } catch (e){
+      $("brandInfo").innerHTML = `<span class="bad">Markalar gelmedi</span>`;
+      BRANDS = [];
+      renderBrandList();
+    }
+  }
+
+  function renderBrandList(){
+    const q = bNorm($("brandSearch").value || "");
+    const box = $("brandList");
+    box.innerHTML = "";
+
+    const list = (BRANDS || [])
+      .filter(b => b?.name)
+      .filter(b => !q || bNorm(b.name).includes(q))
+      .sort((a,b) => String(a.name).localeCompare(String(b.name), "tr", {sensitivity:"base"}));
+
+    for (const b of list){
+      const bn = bNorm(b.name);
+      const row = document.createElement("div");
+      row.className = "brandItem";
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = SELECTED.has(bn);
+      cb.addEventListener("change", () => {
+        if (cb.checked) SELECTED.add(bn);
+        else SELECTED.delete(bn);
+        updateRunEnabled();
+      });
+
+      const lab = document.createElement("div");
+      lab.style.minWidth = "0";
+      lab.innerHTML = `<div style="font-weight:800">${b.name}</div>
+                       <small>${b.count ?? ""}</small>`;
+
+      row.appendChild(cb);
+      row.appendChild(lab);
+      box.appendChild(row);
+    }
+
+    updateRunEnabled();
+  }
+
+  $("brandSearch").addEventListener("input", renderBrandList);
+  $("brandClear").addEventListener("click", () => { SELECTED.clear(); renderBrandList(); });
+
+  // ---------- T-Soft ----------
+  $("tsoftFile").addEventListener("change", async () => {
+    TSOFT = { ok:false, rows:[], C:null };
+    $("tsoftInfo").textContent = "—";
+    updateRunEnabled();
+
+    const f = $("tsoftFile").files?.[0];
+    if (!f) return;
+
+    try{
+      const txt = await readFileText(f);
+      const p = parseDelimited(txt);
+      if (!p.rows?.length) throw new Error("CSV boş");
+      const s = p.rows[0];
+      const C2 = {
+        marka: pickColumn(s, ["Marka","MARKA","Brand"]),
+        sup: pickColumn(s, ["Tedarikçi Ürün Kodu","Tedarikci Urun Kodu","Tedarikçi Urun Kodu","Supplier Product Code"])
+      };
+      if (!C2.marka || !C2.sup) throw new Error("Sütun bulunamadı (Marka / Tedarikçi Ürün Kodu)");
+
+      TSOFT = { ok:true, rows:p.rows, C:C2 };
+      $("tsoftInfo").innerHTML = `<span class="ok">Yüklendi</span> • ${p.rows.length} satır`;
+    } catch (e){
+      $("tsoftInfo").innerHTML = `<span class="bad">Hata:</span> ${String(e.message || e)}`;
+    }
+    updateRunEnabled();
+  });
+
+  // ---------- Aide Convert + Preview ----------
+  let aideParsedTmp = null;
+
+  function renderAidePreview(rows, cols){
+    const head = $("aidePrevHead");
+    const body = $("aidePrevBody");
+    head.innerHTML = "";
+    body.innerHTML = "";
+
+    for (const c of cols){
+      const th = document.createElement("th");
+      th.textContent = c;
+      head.appendChild(th);
+    }
+
+    const show = (rows || []).slice(0, 12);
+    for (const r of show){
+      const tr = document.createElement("tr");
+      for (const c of cols){
+        const td = document.createElement("td");
+        td.textContent = (r[c] ?? "").toString();
+        tr.appendChild(td);
+      }
+      body.appendChild(tr);
+    }
+  }
+
+  $("aidePaste").addEventListener("input", () => {
+    aideParsedTmp = null;
+    $("aideLoad").disabled = true;
+    $("aideInfo").textContent = "—";
+    renderAidePreview([], ["Marka","Model","Stok Kodu"]);
+
+    const raw = $("aidePaste").value || "";
+    const p = parseAide(raw);
+
+    if (!p.ok || !p.rows.length){
+      $("aideInfo").innerHTML = `<span class="bad">Dönüştürülemedi</span>`;
+      return;
+    }
+
+    // Normalize to a simple CSV-like row shape we will use
+    const out = [];
+    for (const r of p.rows){
+      const marka = T(r[p.C.marka] ?? r["Marka"] ?? "");
+      const model = T(r[p.C.model] ?? r["Model"] ?? "");
+      const stokKodu = T(r[p.C.stokKodu] ?? r["Stok Kodu"] ?? "");
+      if (!marka && !model && !stokKodu) continue;
+      out.push({ "Marka": marka, "Model": model, "Stok Kodu": stokKodu });
+    }
+
+    aideParsedTmp = { rows: out, C: p.C, mode: p.mode };
+    $("aideLoad").disabled = false;
+    $("aideInfo").innerHTML = `<span class="ok">Dönüştürüldü</span> • ${out.length} satır (${p.mode})`;
+    renderAidePreview(out, ["Marka","Model","Stok Kodu"]);
+  });
+
+  $("aideLoad").addEventListener("click", () => {
+    if (!aideParsedTmp?.rows?.length){
+      $("aideLoad").disabled = true;
+      return;
+    }
+    AIDE = { ok:true, rows: aideParsedTmp.rows, C: { marka:"Marka", model:"Model", stokKodu:"Stok Kodu" } };
+    $("aideInfo").innerHTML = `<span class="ok">Yüklendi</span> • ${AIDE.rows.length} satır`;
+    updateRunEnabled();
+  });
+
+  // ---------- Result ----------
+  function buildTsoftSupSetsForSelectedBrands(){
+    // brandNorm -> Set(supNorm + alt)
+    const map = new Map();
+    const C = TSOFT.C;
+    for (const r of TSOFT.rows){
+      const br = bNorm(r[C.marka] || "");
+      if (!br || !SELECTED.has(br)) continue;
+
+      const sup = T(r[C.sup] || "");
+      if (!sup) continue;
+
+      if (!map.has(br)) map.set(br, new Set());
+      const set = map.get(br);
+      const k = codeNorm(sup);
+      if (k) set.add(k);
+      const a = codeAlt(k);
+      if (a && a !== k) set.add(a);
+    }
+    return map;
+  }
+
+  $("run").addEventListener("click", () => {
+    const outBody = $("outBody");
+    outBody.innerHTML = "";
+
+    if (!TSOFT.ok || !AIDE.ok || !SELECTED.size){
+      $("outInfo").innerHTML = `<span class="bad">Eksik veri</span>`;
+      return;
+    }
+
+    const tsoftSupByBrand = buildTsoftSupSetsForSelectedBrands();
+
+    const out = [];
+    const seen = new Set(); // brand||model||code
+    for (const r of AIDE.rows){
+      const brRaw = r["Marka"] ?? "";
+      if (isBadBrand(brRaw)) continue;
+
+      const br = bNorm(brRaw);
+      if (!br || !SELECTED.has(br)) continue;
+
+      const model = T(r["Model"] || "");
+      const codeRaw = T(r["Stok Kodu"] || "");
+      if (!model || !codeRaw) continue;
+
+      const code = codeNorm(codeRaw);
+      const alt = codeAlt(code);
+
+      const supSet = tsoftSupByBrand.get(br);
+      const hit = supSet ? (supSet.has(code) || (alt ? supSet.has(alt) : false)) : false;
+
+      if (hit) continue; // T-Soft sup ile eşleşiyorsa listelenmez
+
+      const key = (br + "||" + model + "||" + code).toLocaleLowerCase(TR);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      out.push({ brand: br, model, code });
+    }
+
+    out.sort((a,b) => {
+      const x = a.brand.localeCompare(b.brand, "tr", {sensitivity:"base"});
+      if (x) return x;
+      return a.model.localeCompare(b.model, "tr", {sensitivity:"base"});
+    });
+
+    for (let i=0;i<out.length;i++){
+      const tr = document.createElement("tr");
+
+      const td1 = document.createElement("td"); td1.textContent = String(i+1);
+      const td2 = document.createElement("td"); td2.textContent = out[i].brand;
+      const td3 = document.createElement("td"); td3.textContent = out[i].model;
+      const td4 = document.createElement("td"); td4.textContent = out[i].code;
+
+      tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+      outBody.appendChild(tr);
+    }
+
+    $("outInfo").innerHTML = `<span class="ok">Bitti</span> • ${out.length} kayıt`;
+  });
+
+  // init
+  renderAidePreview([], ["Marka","Model","Stok Kodu"]);
+  updateRunEnabled();
+  loadBrands();
+})();
+</script>
+</body>
+</html>
