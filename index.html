@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Aide Marka Liste</title>
+  <title>Aide ↔ Compel Marka Eşleştir</title>
   <style>
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b0d12;color:#eaeef7}
     .wrap{padding:14px;display:flex;gap:12px;flex-wrap:wrap}
     .card{border:1px solid #2a3140;background:#0f1320;border-radius:12px;padding:12px;flex:1 1 420px;min-width:320px}
     h3{margin:0 0 10px;font-size:16px}
     textarea,input{width:100%;box-sizing:border-box;background:#0b0d12;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;padding:10px}
-    textarea{min-height:260px;resize:vertical}
+    textarea{min-height:240px;resize:vertical}
     button{
       background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;
       padding:9px 12px;font-weight:900;cursor:pointer
@@ -21,38 +21,54 @@
     .muted{opacity:.85;font-size:12px}
     .ok{color:#86efac}
     .bad{color:#fca5a5}
-    .listBox{max-height:520px;overflow:auto;border:1px solid #2a3140;border-radius:10px;background:#0b0d12}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid #1f2430;padding:8px 8px;text-align:left;font-size:13px}
-    th{position:sticky;top:0;background:#0f1320}
     .pill{display:inline-block;padding:2px 8px;border:1px solid #2a3140;border-radius:999px;background:#0b0d12;font-size:12px;font-weight:800}
+    .box{max-height:560px;overflow:auto;border:1px solid #2a3140;border-radius:12px;background:#0b0d12}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #1f2430;padding:8px 8px;text-align:left;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    th{position:sticky;top:0;background:#0f1320}
+    .tiny th,.tiny td{font-size:11px;padding:6px 8px}
+    .tag{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a3140;background:#0f1320;font-size:12px;font-weight:800}
+    .tag.ok{color:#86efac}
+    .tag.bad{color:#fca5a5}
+    .tag.muted{opacity:.8}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <h3>Aide verisini yapıştır</h3>
-      <textarea id="paste" placeholder="Aide stok listesini (tablo) kopyalayıp buraya yapıştır..."></textarea>
+      <textarea id="paste" placeholder="Aide stok listesini veya 'Sıra\tMarka' listesini buraya yapıştır..."></textarea>
+
       <div class="row" style="margin-top:10px">
-        <button id="run" type="button">Markaları Çıkar</button>
-        <button id="dl" type="button" disabled>CSV indir</button>
+        <button id="run" type="button" disabled>Çıkar + Eşleştir</button>
+        <button id="dlAide" type="button" disabled>Aide Markaları CSV</button>
+        <button id="dlMap" type="button" disabled>Eşleştirme CSV</button>
         <button id="clr" type="button">Temizle</button>
       </div>
-      <div class="muted" id="info" style="margin-top:8px">Sadece “Marka” sütunu taranır. Aynı marka 1 kez listelenir.</div>
+
+      <div class="muted" id="info" style="margin-top:8px">
+        Worker’dan Compel markaları yüklenince buton aktif olur.
+      </div>
+
       <div class="muted" style="margin-top:8px">
-        <span class="pill">İpucu</span> Eğer tablo kopyasında “Marka” başlığı yoksa, satırların ilk hücresini marka kabul eder.
+        <span class="pill">Not</span>
+        “- / — / N/A / boş” marka satırları yok sayılır. Eşleştirme: normalize + alias + Compel listesi.
       </div>
     </div>
 
     <div class="card">
-      <h3>Tekil Marka Listesi</h3>
-      <div class="muted" id="outInfo">—</div>
-      <div class="listBox" style="margin-top:10px">
-        <table>
+      <h3>Sonuç</h3>
+      <div class="muted" id="sum">—</div>
+      <div class="box" style="margin-top:10px">
+        <table class="tiny">
           <thead>
             <tr>
-              <th style="width:70px">Sıra</th>
-              <th>Marka</th>
+              <th style="width:60px">#</th>
+              <th style="width:200px">Aide (Kanonik)</th>
+              <th>Aide Varyantları</th>
+              <th style="width:220px">Compel Eşleşme</th>
+              <th style="width:140px">Compel Slug</th>
+              <th style="width:110px">Durum</th>
             </tr>
           </thead>
           <tbody id="out"></tbody>
@@ -63,24 +79,139 @@
 
 <script>
 (() => {
+  const API_BASE = "https://robot-workstation.tvkapora.workers.dev";
   const TR = "tr-TR";
   const $ = (id) => document.getElementById(id);
 
-  const T = (s) => (s ?? "").toString().trim();
-  const norm = (s) => (s ?? "")
-    .toString()
-    .replace(/\u00A0/g," ")
-    .trim()
-    .toLocaleUpperCase(TR)
-    .replace(/\s+/g," ");
+  // ----------------------------
+  // ✅ Normalizasyon + Alias
+  // ----------------------------
+  const canonKey = (s) => {
+    let x = (s ?? "").toString().replace(/\u00A0/g," ").trim();
+    if (!x) return "";
+    // diacritics off
+    x = x.normalize("NFKD").replace(/[\u0300-\u036f]/g,"");
+    // Ø -> O
+    x = x.replace(/Ø/g,"O").replace(/ø/g,"o");
+    // upper
+    x = x.toLocaleUpperCase(TR);
+    // TR chars -> ASCII
+    x = x.replace(/\u0130/g,"I").replace(/\u0131/g,"I"); // İ, ı
+    x = x.replace(/Ğ/g,"G").replace(/Ü/g,"U").replace(/Ş/g,"S").replace(/Ö/g,"O").replace(/Ç/g,"C");
+    // symbols
+    x = x.replace(/&/g," ");
+    x = x.replace(/[^A-Z0-9]+/g," ").trim().replace(/\s+/g," ");
+    return x;
+  };
+  const compactKey = (s) => canonKey(s).replace(/\s+/g,"");
 
-  const isBad = (s) => {
-    const x = T(s);
-    if (!x) return true;
-    const u = x.toLocaleUpperCase(TR).trim();
-    return u === "-" || u === "—" || u === "N/A";
+  const isBad = (raw) => {
+    const t = (raw ?? "").toString().trim();
+    if (!t) return true;
+    const u = canonKey(t);
+    return !u || u === "-" || u === "—" || u === "N A" || u === "NA" || u === "N/A";
   };
 
+  // Aide tarafında “aynı marka” birleştirme alias’ları (kanonik anahtar üretir)
+  const AIDE_ALIAS_CANON = new Map([
+    ["BEYER", "BEYERDYNAMIC"],
+    ["ULTIMATE", "ULTIMATE"],
+    ["ULTIMATE", "ULTIMATE"],
+
+    // yazım/harf düzeltmeleri (kanonik zaten çoğunu çözer ama garanti)
+    ["FOCUSRITE", "FOCUSRITE"],
+    ["FOCUSRIITE", "FOCUSRITE"],
+
+    // örnek birleşmeler
+    ["RODE", "RODE"],
+    ["RODE X", "RODE X"],
+    ["BEYERDYNAMIC", "BEYERDYNAMIC"],
+  ]);
+
+  // Aide → Compel slug alias’ları (Compel tarafı farklı isim kullanıyorsa)
+  // (İstersen burayı senin “genel eşleştirme listene” göre genişletiriz)
+  const AIDE_TO_COMPEL_SLUG = new Map([
+    // Aide sade isim -> Compel gerçek markası
+    ["DENON", "denon-dj"],
+    ["FENDER", "fender-studio"],
+    ["UNIVERSAL", "universal-audio"],
+    ["WARMAUDIO", "warm-audio"],
+
+    // Bu üçü Compel’de zaten var ama garanti edelim:
+    ["RODE", "rode"],
+    ["RODE X", "rode-x"],
+
+    // Compel’de “Allen & Heath” slug’ı
+    ["ALLEN HEATH", "allen-heath"],
+    ["RUPERT NEVE", "rupert-neve-designs"],
+    ["MARANTZ", "marantz-professional"],
+  ]);
+
+  const aideCanon = (raw) => {
+    const k = canonKey(raw);
+    if (!k) return "";
+    const kc = compactKey(raw);
+    // önce compact alias (WARMAUDIO gibi)
+    if (AIDE_ALIAS_CANON.has(kc)) return AIDE_ALIAS_CANON.get(kc);
+    if (AIDE_ALIAS_CANON.has(k)) return AIDE_ALIAS_CANON.get(k);
+    // otomatik bazı birleştirmeler:
+    if (k === "BEYER") return "BEYERDYNAMIC";
+    if (k === "BEYERDYNAMIC") return "BEYERDYNAMIC";
+    return k;
+  };
+
+  // slugify (fallback eşleştirme)
+  const toSlug = (s) => (s ?? "")
+    .toString()
+    .trim()
+    .toLocaleLowerCase(TR)
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/ø/g,"o")
+    .replace(/&/g," ")
+    .replace(/[^a-z0-9]+/g,"-")
+    .replace(/^-+|-+$/g,"");
+
+  // ----------------------------
+  // ✅ Compel markaları yükle
+  // ----------------------------
+  let COMPEL = [];
+  let compelBySlug = new Map();
+  let compelByCanon = new Map();
+  let compelByCompact = new Map();
+
+  async function loadCompelBrands(){
+    $("info").textContent = "Compel markaları yükleniyor…";
+    try{
+      const res = await fetch(`${API_BASE}/api/brands`, { cache:"no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      COMPEL = await res.json();
+
+      compelBySlug = new Map();
+      compelByCanon = new Map();
+      compelByCompact = new Map();
+
+      for (const b of (COMPEL || [])){
+        const slug = (b?.slug || "").toString();
+        const name = (b?.name || "").toString();
+        if (slug) compelBySlug.set(slug, b);
+
+        const ck = canonKey(name);
+        const ckc = compactKey(name);
+        if (ck && !compelByCanon.has(ck)) compelByCanon.set(ck, b);
+        if (ckc && !compelByCompact.has(ckc)) compelByCompact.set(ckc, b);
+      }
+
+      $("info").innerHTML = `<span class="ok">Compel yüklendi</span> • ${COMPEL.length} marka`;
+      $("run").disabled = false;
+    } catch {
+      $("info").innerHTML = `<span class="bad">Compel markaları alınamadı</span>`;
+      $("run").disabled = true;
+    }
+  }
+
+  // ----------------------------
+  // ✅ Aide marka parse (Marka sütunu)
+  // ----------------------------
   function detectDelimiter(h){
     const c = ["\t",";",",","|"];
     let best = c[0], m = -1;
@@ -125,13 +256,10 @@
   const normHeader = (h) => (h ?? "").toString().trim().toLocaleUpperCase(TR).replace(/\s+/g," ");
   function pickBrandColumn(sampleObj){
     const map = new Map(Object.keys(sampleObj).map(k => [normHeader(k), k]));
-    const direct = map.get("MARKA");
-    if (direct) return direct;
-    // bazı tablolarda Brand geçebilir
-    return map.get("BRAND") || null;
+    return map.get("MARKA") || map.get("BRAND") || null;
   }
 
-  // fallback: noisy tab paste, 1. kolon = Marka
+  // fallback: tab paste, 1. kolon = marka
   function extractBrandsFromNoisy(text){
     const lines = (text || "").split(/\r\n|\r|\n/);
     const out = [];
@@ -141,22 +269,87 @@
       if (!l.includes("\t")) continue;
       const a = l.split("\t").map(x => x.trim());
       if (!a.length) continue;
-      // header satırını atla
-      if (norm(a[0]) === "MARKA") continue;
+      if (canonKey(a[0]) === "MARKA") continue;
       out.push(a[0]);
     }
     return out;
   }
 
-  function toCSV(rows){
+  function getAideBrands(raw){
+    let brands = [];
+
+    // 1) delimited + "Marka" sütunu
+    try{
+      const p = parseDelimited(raw);
+      if (p.rows?.length){
+        const col = pickBrandColumn(p.rows[0]);
+        if (col) brands = p.rows.map(r => r[col]).filter(Boolean);
+      }
+    } catch {}
+
+    // 2) fallback
+    if (!brands.length) brands = extractBrandsFromNoisy(raw);
+
+    return brands;
+  }
+
+  // ----------------------------
+  // ✅ Matching: Aide canon -> Compel brand
+  // ----------------------------
+  function matchCompelByAideCanon(aCanon){
+    if (!aCanon) return { hit:false };
+
+    const aCompact = aCanon.replace(/\s+/g,"");
+    // 1) explicit slug alias
+    const slugAlias = AIDE_TO_COMPEL_SLUG.get(aCompact) || AIDE_TO_COMPEL_SLUG.get(aCanon);
+    if (slugAlias && compelBySlug.has(slugAlias)){
+      const b = compelBySlug.get(slugAlias);
+      return { hit:true, via:"ALIAS", brand:b, slug:slugAlias };
+    }
+
+    // 2) direct canon match by name
+    if (compelByCanon.has(aCanon)){
+      const b = compelByCanon.get(aCanon);
+      return { hit:true, via:"NAME", brand:b, slug:b.slug };
+    }
+    // 3) compact match (WARMAUDIO vs WARM AUDIO)
+    if (compelByCompact.has(aCompact)){
+      const b = compelByCompact.get(aCompact);
+      return { hit:true, via:"COMPACT", brand:b, slug:b.slug };
+    }
+
+    // 4) slug fallback
+    const slugTry = toSlug(aCanon);
+    if (slugTry && compelBySlug.has(slugTry)){
+      const b = compelBySlug.get(slugTry);
+      return { hit:true, via:"SLUG", brand:b, slug:b.slug };
+    }
+
+    // 5) slug compact fallback (denon-dj vs denondj gibi)
+    if (slugTry){
+      const slugC = slugTry.replace(/-/g,"");
+      for (const [slug, b] of compelBySlug.entries()){
+        if (slug.replace(/-/g,"") === slugC){
+          return { hit:true, via:"SLUG2", brand:b, slug:b.slug };
+        }
+      }
+    }
+
+    return { hit:false };
+  }
+
+  // ----------------------------
+  // ✅ CSV export
+  // ----------------------------
+  function toCSV(rows, cols){
     const q = (v) => {
       v = (v ?? "").toString();
       return (v.includes('"')||v.includes("\n")||v.includes("\r")||v.includes(","))
         ? ('"' + v.replace(/"/g,'""') + '"') : v;
     };
-    return "Sıra,Marka\n" + rows.map(r => `${q(r.no)},${q(r.brand)}`).join("\n");
+    return cols.map(q).join(",") + "\n" +
+      rows.map(r => cols.map(c => q(r[c])).join(",")).join("\n");
   }
-
   function download(filename, text){
     const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -166,74 +359,124 @@
     setTimeout(()=>URL.revokeObjectURL(url), 1200);
   }
 
-  let last = [];
+  let lastAide = [];
+  let lastMap = [];
 
+  // ----------------------------
+  // ✅ Run
+  // ----------------------------
   $("run").addEventListener("click", () => {
     const raw = $("paste").value || "";
-    last = [];
     $("out").innerHTML = "";
-    $("dl").disabled = true;
+    $("sum").textContent = "—";
+    $("dlAide").disabled = true;
+    $("dlMap").disabled = true;
+    lastAide = [];
+    lastMap = [];
 
     if (!raw.trim()){
-      $("info").innerHTML = `<span class="bad">Metin boş.</span>`;
+      $("sum").innerHTML = `<span class="bad">Metin boş</span>`;
       return;
     }
 
-    let brands = [];
+    const brands = getAideBrands(raw);
 
-    // 1) delimited parse dene (Marka sütunu varsa en iyi)
-    try{
-      const p = parseDelimited(raw);
-      if (p.rows?.length){
-        const col = pickBrandColumn(p.rows[0]);
-        if (col){
-          brands = p.rows.map(r => r[col]).filter(Boolean);
-        }
-      }
-    } catch {}
-
-    // 2) olmadıysa noisy fallback
-    if (!brands.length){
-      brands = extractBrandsFromNoisy(raw);
-    }
-
-    // uniq
-    const seen = new Map(); // norm -> display
+    // Group: canon -> { variants:Set(display) }
+    const groups = new Map();
     for (const b of brands){
       if (isBad(b)) continue;
-      const n = norm(b);
-      if (!n) continue;
-      if (!seen.has(n)) seen.set(n, T(b)); // ilk gördüğünü display olarak tut
+      const c = aideCanon(b);
+      if (!c) continue;
+      if (!groups.has(c)) groups.set(c, new Set());
+      groups.get(c).add((b ?? "").toString().trim());
     }
 
-    const arr = [...seen.entries()]
-      .map(([n,disp]) => ({ n, disp }))
-      .sort((a,b) => a.disp.localeCompare(b.disp, "tr", {sensitivity:"base"}));
+    const rows = [...groups.entries()].map(([canon, vars]) => ({
+      canon,
+      vars: [...vars].sort((a,b)=>a.localeCompare(b,"tr",{sensitivity:"base"}))
+    })).sort((a,b)=>a.canon.localeCompare(b.canon,"tr",{sensitivity:"base"}));
 
-    last = arr.map((x,i) => ({ no: String(i+1), brand: x.disp }));
-
-    // render
+    // Render + Match
+    let matched = 0;
     const tb = $("out");
-    tb.innerHTML = last.map(r => `<tr><td>${r.no}</td><td>${r.brand}</td></tr>`).join("");
 
-    $("outInfo").innerHTML = `<span class="ok">Bulunan tekil marka:</span> ${last.length}`;
-    $("info").innerHTML = `<span class="ok">Bitti.</span> Toplam satırdan tekilleştirildi.`;
-    $("dl").disabled = !last.length;
+    for (let i=0;i<rows.length;i++){
+      const r = rows[i];
+      const m = matchCompelByAideCanon(r.canon);
+
+      const status = m.hit ? "eşleşti" : "yok";
+      const tagCls = m.hit ? "ok" : "bad";
+      const via = m.hit ? m.via : "";
+      if (m.hit) matched++;
+
+      const compelName = m.hit ? (m.brand?.name || "") : "";
+      const compelSlug = m.hit ? (m.slug || m.brand?.slug || "") : "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td title="${r.canon}">${r.canon}</td>
+        <td title="${r.vars.join(" | ")}">${r.vars.join(" | ")}</td>
+        <td title="${compelName}">${compelName || "—"}</td>
+        <td title="${compelSlug}">${compelSlug || "—"}</td>
+        <td><span class="tag ${tagCls}">${status}</span> <span class="tag muted">${via || "-"}</span></td>
+      `;
+      tb.appendChild(tr);
+    }
+
+    $("sum").innerHTML = `
+      <span class="pill">Aide Tekil (kanonik)</span> ${rows.length}
+      &nbsp; <span class="pill">Compel Eşleşen</span> <span class="ok">${matched}</span>
+      &nbsp; <span class="pill">Eşleşmeyen</span> <span class="bad">${rows.length - matched}</span>
+    `;
+
+    // Prepare downloads
+    lastAide = rows.map((r, idx) => ({
+      "Sıra": String(idx+1),
+      "Aide (Kanonik)": r.canon,
+      "Aide Varyantları": r.vars.join(" | ")
+    }));
+
+    lastMap = rows.map((r, idx) => {
+      const m = matchCompelByAideCanon(r.canon);
+      return {
+        "Sıra": String(idx+1),
+        "Aide (Kanonik)": r.canon,
+        "Aide Varyantları": r.vars.join(" | "),
+        "Compel Marka": m.hit ? (m.brand?.name || "") : "",
+        "Compel Slug": m.hit ? (m.slug || m.brand?.slug || "") : "",
+        "Eşleştirme Yöntemi": m.hit ? m.via : ""
+      };
+    });
+
+    $("dlAide").disabled = !lastAide.length;
+    $("dlMap").disabled = !lastMap.length;
   });
 
-  $("dl").addEventListener("click", () => {
-    if (!last.length) return;
-    download("aide_markalar.csv", toCSV(last));
+  $("dlAide").addEventListener("click", () => {
+    if (!lastAide.length) return;
+    download("aide_markalar_kanonik.csv", toCSV(lastAide, ["Sıra","Aide (Kanonik)","Aide Varyantları"]));
+  });
+
+  $("dlMap").addEventListener("click", () => {
+    if (!lastMap.length) return;
+    download("aide_compel_marka_eslestirme.csv", toCSV(lastMap, [
+      "Sıra","Aide (Kanonik)","Aide Varyantları","Compel Marka","Compel Slug","Eşleştirme Yöntemi"
+    ]));
   });
 
   $("clr").addEventListener("click", () => {
     $("paste").value = "";
     $("out").innerHTML = "";
-    $("outInfo").textContent = "—";
-    $("info").textContent = "Sadece “Marka” sütunu taranır. Aynı marka 1 kez listelenir.";
-    $("dl").disabled = true;
-    last = [];
+    $("sum").textContent = "—";
+    $("dlAide").disabled = true;
+    $("dlMap").disabled = true;
+    lastAide = [];
+    lastMap = [];
   });
+
+  // init
+  loadCompelBrands();
 })();
 </script>
 </body>
