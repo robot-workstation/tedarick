@@ -94,21 +94,34 @@ export function createRenderer({ui}={}){
       return `<th class="${cls}" title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`
     }).join('');
 
-    // ✅ İSTENEN: "Stok (Compel)" = "Stokta Yok" olanları en alta at (stable)
+    // ✅ "Stok (Compel)" = "Stokta Yok" olanları en alta at (stable)
     const Rview = (R||[])
       .map((row,idx)=>({row,idx}))
       .sort((a,b)=>{
         const aBad = String(a.row?.["Stok (Compel)"]||'') === 'Stokta Yok';
         const bBad = String(b.row?.["Stok (Compel)"]||'') === 'Stokta Yok';
         if(aBad!==bBad) return aBad ? 1 : -1;
-        return a.idx - b.idx; // stable
+        return a.idx - b.idx;
       })
       .map(x=>x.row);
 
-    const body=Rview.map(r=>`<tr>${COLS.map((c,idx)=>{
+    const body=(Rview||[]).map(r=>`<tr>${COLS.map((c,idx)=>{
       const v=r[c]??'';
-      if(c==="Ürün Adı (Compel)")return `<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
-      if(c==="Ürün Adı (T-Soft)")return `<td class="left nameCell">${cellName(v,r._seo||'')}</td>`;
+
+      if(c==="Ürün Adı (Compel)"){
+        return `<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
+      }
+
+      if(c==="Ürün Adı (T-Soft)"){
+        const hasMatch = !!r?._m;
+        const txt = (v??'').toString().trim();
+        if(!hasMatch || !txt){
+          // ✅ İSTENEN: eşleşmemiş ürünlerde boş hücreye uyarı yazısı
+          return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm" style="color:#fca5a5;font-weight:1200">Eşleştir veya Stok Aç</span></td>`;
+        }
+        return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
+      }
+
       const seq=idx===0,sd=c==="Stok Durumu",ed=c==="EAN Durumu",ean=(c==="EAN (Compel)"||c==="EAN (T-Soft)");
       const bad=(sd&&String(v||'')==='Hatalı')||(ed&&String(v||'')==='Eşleşmedi');
       const cls=[T1_SEP_LEFT.has(c)?'sepL':'',seq?'seqCell':'',sd||ed?'statusBold':'',ean?'eanCell':'',bad?'flagBad':''].filter(Boolean).join(' ');
