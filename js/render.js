@@ -3,7 +3,7 @@ import { COLS } from './match.js';
 const $=id=>document.getElementById(id);
 const colGrp=w=>`<colgroup>${w.map(x=>`<col style="width:${x}%">`).join('')}</colgroup>`;
 
-const HDR1={"Sıra No":"Sıra","Marka":"Marka","Ürün Adı (Compel)":"Compel Ürün Adı","Ürün Adı (T-Soft)":"Tsoft Ürün Adı","Ürün Kodu (Compel)":"Compel Ürün Kodu","Ürün Kodu (T-Soft)":"T-Soft Ürün Kodu","Stok (Compel)":"Compel","Stok (Depo)":"Depo","Stok (T-Soft)":"T-Soft","Stok Durumu":"Stok Durumu","EAN (Compel)":"Compel EAN","EAN (T-Soft)":"T-Soft EAN","EAN Durumu":"EAN Durumu"};
+const HDR1={"Sıra No":"Sıra","Marka":"Marka","Ürün Adı (Compel)":"Compel Ürün Adı","Ürün Adı (T-Soft)":"Tsoft Ürün Adı","Ürün Kodu (Compel)":"Compel Ürün Kodu ","Ürün Kodu (T-Soft)":"T-Soft Ürün Kodu","Stok (Compel)":"Compel","Stok (Depo)":"Depo","Stok (T-Soft)":"T-Soft","Stok Durumu":"Stok Durumu","EAN (Compel)":"Compel EAN","EAN (T-Soft)":"T-Soft EAN","EAN Durumu":"EAN Durumu"};
 const disp=c=>HDR1[c]||c;
 const fmtHdr=s=>{s=(s??'').toString();const m=s.match(/^(.*?)(\s*\([^)]*\))\s*$/);return m?`<span class="hMain">${esc(m[1].trimEnd())}</span> <span class="hParen">${esc(m[2].trim())}</span>`:esc(s)};
 
