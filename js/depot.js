@@ -4,6 +4,7 @@ const $=id=>document.getElementById(id);
 export function createDepot({ui,onDepotLoaded,normBrand}={}){
   let L4=[],C4={},idxD=new Map(),depotReady=false;
   let idxBR=new Map(),brandLabelByNorm=new Map();
+  let lastRawText='';
 
   const depoBtn=$('depoBtn'),depoModal=$('depoModal'),depoInner=$('depoInner'),depoPaste=$('depoPaste'),
     depoLoad=$('depoLoad'),depoPasteBtn=$('depoPasteBtn'),depoClose=$('depoClose'),depoClear=$('depoClear'),depoSpin=$('depoSpin');
@@ -148,6 +149,8 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
 
   function loadDepotFromText(text){
     const raw=(text??'').toString();if(!raw.trim())return alert('Depo verisi boş.');
+    lastRawText=raw;
+
     let ok=false;
     try{
       const p=parseDelimited(raw),rows=p?.rows||[];
@@ -182,6 +185,7 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
 
   const reset=()=>{
     depotReady=false;L4=[];C4={};idxD=new Map();idxBR=new Map();brandLabelByNorm=new Map();
+    lastRawText='';
     depoPaste&&(depoPaste.value='');syncDepoSpin();setDepoUi(false)
   };
 
@@ -212,5 +216,14 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
 
   setDepoUi(false);syncDepoSpin();
 
-  return{reset,isReady:()=>depotReady,agg:depotAgg,count:()=>L4.length,unmatchedRows}
+  return{
+    reset,
+    isReady:()=>depotReady,
+    agg:depotAgg,
+    count:()=>L4.length,
+    unmatchedRows,
+    /* ✅ programmatic load (daily) */
+    loadText:(text)=>loadDepotFromText(text),
+    getLastRaw:()=>lastRawText
+  }
 }
