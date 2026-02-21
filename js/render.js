@@ -94,7 +94,18 @@ export function createRenderer({ui}={}){
       return `<th class="${cls}" title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`
     }).join('');
 
-    const body=(R||[]).map(r=>`<tr>${COLS.map((c,idx)=>{
+    // ✅ İSTENEN: "Stok (Compel)" = "Stokta Yok" olanları en alta at (stable)
+    const Rview = (R||[])
+      .map((row,idx)=>({row,idx}))
+      .sort((a,b)=>{
+        const aBad = String(a.row?.["Stok (Compel)"]||'') === 'Stokta Yok';
+        const bBad = String(b.row?.["Stok (Compel)"]||'') === 'Stokta Yok';
+        if(aBad!==bBad) return aBad ? 1 : -1;
+        return a.idx - b.idx; // stable
+      })
+      .map(x=>x.row);
+
+    const body=Rview.map(r=>`<tr>${COLS.map((c,idx)=>{
       const v=r[c]??'';
       if(c==="Ürün Adı (Compel)")return `<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
       if(c==="Ürün Adı (T-Soft)")return `<td class="left nameCell">${cellName(v,r._seo||'')}</td>`;
