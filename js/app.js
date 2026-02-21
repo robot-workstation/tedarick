@@ -39,8 +39,8 @@ const INFO_HIDE_IDS=['brandStatus','l1Chip','l2Chip','l4Chip','sum'];
 /* ✅ daily state */
 let DAILY_META=null;
 let DAILY_SELECTED={tsoft:false,aide:false};
-let DAILY_READ_CACHE={date:'',pass:''};      // okuma şifresi (1 kere)
-let DAILY_SAVE_CRED=null;                   // {adminPassword, readPassword} (1 kere)
+let DAILY_READ_CACHE={date:'',pass:''}; // okuma şifresi (1 kere)
+let DAILY_SAVE_CRED=null;              // {adminPassword, readPassword} (1 kere)
 const setBtnSel=(btn,sel)=>{if(!btn)return;sel?btn.classList.add('sel'):btn.classList.remove('sel')};
 
 /* brands */
@@ -141,9 +141,34 @@ async function refreshDailyMeta(){
   paintDailyUI();
 }
 
+function closeModalByButton(btnId){
+  const b=$(btnId);
+  b && b.click();
+}
+
 function toggleDaily(kind){
-  if(kind==='tsoft'){ DAILY_SELECTED.tsoft=!DAILY_SELECTED.tsoft; paintDailyUI(); }
-  else if(kind==='aide'){ DAILY_SELECTED.aide=!DAILY_SELECTED.aide; paintDailyUI(); }
+  if(kind==='tsoft'){
+    DAILY_SELECTED.tsoft=!DAILY_SELECTED.tsoft;
+    paintDailyUI();
+
+    // ✅ seçilince modal kapansın + pulse sonraki butona geçsin
+    if(DAILY_SELECTED.tsoft){
+      closeModalByButton('tsoftDismiss');
+      if(!hasEverListed && SELECTED.size>0) setGuideStep('aide');
+    }else{
+      if(!hasEverListed && SELECTED.size>0) setGuideStep('tsoft');
+    }
+  }else if(kind==='aide'){
+    DAILY_SELECTED.aide=!DAILY_SELECTED.aide;
+    paintDailyUI();
+
+    if(DAILY_SELECTED.aide){
+      closeModalByButton('depoClose');
+      if(!hasEverListed && SELECTED.size>0) setGuideStep('list');
+    }else{
+      if(!hasEverListed && SELECTED.size>0) setGuideStep('aide');
+    }
+  }
 }
 
 /* ✅ one-time save creds (admin + read pass) */
@@ -445,7 +470,6 @@ function compactTsoftCSV(L2all,C2){
 async function generate(){
   const needDaily = DAILY_SELECTED.tsoft || DAILY_SELECTED.aide;
 
-  // T-Soft source must exist either local file or daily selected
   const file=$('f2')?.files?.[0];
   if(!file && !DAILY_SELECTED.tsoft){alert('Lütfen T-Soft Stok CSV seç veya Bugün verisini seç.');return false}
 
@@ -564,9 +588,7 @@ async function generate(){
     lockListTitleFromCurrentSelection();setListTitleVisible(true);
     return true
   }catch(e){
-    // unauthorized → clear read cache so it asks again next time
     if(String(e?.message||'').toLowerCase().includes('unauthorized')) DAILY_READ_CACHE={date:'',pass:''};
-
     console.error(e);
     setStatus(String(e?.message||'Hata (konsol)'),'bad');
     alert(e?.message||String(e));
