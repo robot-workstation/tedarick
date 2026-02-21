@@ -39,7 +39,8 @@ const INFO_HIDE_IDS=['brandStatus','l1Chip','l2Chip','l4Chip','sum'];
 /* ✅ daily state */
 let DAILY_META=null;
 let DAILY_SELECTED={tsoft:false,aide:false};
-let DAILY_SAVE={tsoft:null,aide:null}; // {adminPassword, readPassword}
+let DAILY_READ_CACHE={date:'',pass:''};      // okuma şifresi (1 kere)
+let DAILY_SAVE_CRED=null;                   // {adminPassword, readPassword} (1 kere)
 const setBtnSel=(btn,sel)=>{if(!btn)return;sel?btn.classList.add('sel'):btn.classList.remove('sel')};
 
 /* brands */
@@ -135,43 +136,37 @@ function paintDailyUI(){
 }
 
 async function refreshDailyMeta(){
-  try{
-    DAILY_META=await dailyMeta(API_BASE);
-  }catch(e){
-    console.warn('daily meta fail',e);
-    DAILY_META=null;
-  }
+  try{ DAILY_META=await dailyMeta(API_BASE); }
+  catch(e){ console.warn('daily meta fail',e); DAILY_META=null; }
   paintDailyUI();
 }
 
 function toggleDaily(kind){
-  if(kind==='tsoft'){
-    DAILY_SELECTED.tsoft=!DAILY_SELECTED.tsoft;
-    if(DAILY_SELECTED.tsoft){
-      // last selection wins → if user chooses daily, daily wins
-    }
-    paintDailyUI();
-  }else if(kind==='aide'){
-    DAILY_SELECTED.aide=!DAILY_SELECTED.aide;
-    paintDailyUI();
-  }
+  if(kind==='tsoft'){ DAILY_SELECTED.tsoft=!DAILY_SELECTED.tsoft; paintDailyUI(); }
+  else if(kind==='aide'){ DAILY_SELECTED.aide=!DAILY_SELECTED.aide; paintDailyUI(); }
 }
 
-/* ✅ save daily arming */
-function unarmSave(kind){
-  DAILY_SAVE[kind]=null;
-  if(kind==='tsoft'){const cb=$('tsoftSaveToday');cb&&(cb.checked=false)}
-  if(kind==='aide'){const cb=$('aideSaveToday');cb&&(cb.checked=false)}
-}
-function armSave(kind){
+/* ✅ one-time save creds (admin + read pass) */
+function ensureSaveCredOrCancel(){
+  if(DAILY_SAVE_CRED?.adminPassword && DAILY_SAVE_CRED?.readPassword) return true;
   const admin=prompt('Yetkili şifre (DDMMYYYY):');
-  if(!admin){unarmSave(kind);return}
+  if(!admin) return false;
   const read=prompt('Bugün için okuma şifresi:');
-  if(!read?.trim()){unarmSave(kind);return}
-  DAILY_SAVE[kind]={adminPassword:String(admin).trim(),readPassword:String(read).trim()};
+  if(!read?.trim()) return false;
+  DAILY_SAVE_CRED={adminPassword:String(admin).trim(),readPassword:String(read).trim()};
+  return true;
 }
 
-/* ✅ T-Soft popover (bilgi ekranı) */
+/* ✅ one-time read pass cache */
+async function getReadPassOrPrompt(){
+  const ymd=String(DAILY_META?.today?.ymd||'').trim();
+  if(DAILY_READ_CACHE.pass && DAILY_READ_CACHE.date===ymd) return DAILY_READ_CACHE.pass;
+  const p=prompt('Bugünün verisini kullanmak için okuma şifresi:')||'';
+  if(!p.trim()) throw new Error('Şifre girilmedi');
+  return p.trim();
+}
+
+/* ✅ T-Soft popover */
 (()=>{const box=$('sescBox'),inp=$('f2'),modal=$('tsoftModal'),inner=$('tsoftInner'),pick=$('tsoftClose'),dismiss=$('tsoftDismiss');
   if(!box||!inp||!modal||!inner||!pick||!dismiss)return;
   let allow=false;const isOpen=()=>modal.style.display==='block';
@@ -194,10 +189,12 @@ function armSave(kind){
   addEventListener('keydown',e=>{if(e.key!=='Escape'||!isOpen())return;e.preventDefault();e.stopPropagation();openPicker()});
   addEventListener('resize',()=>isOpen()&&place());addEventListener('scroll',()=>isOpen()&&place(),true);
 
-  // ✅ arm save daily (tsoft)
+  // ✅ tsoft save checkbox: only asks once per page
   const cb=$('tsoftSaveToday');
   cb&&cb.addEventListener('change',()=>{
-    if(cb.checked) armSave('tsoft'); else unarmSave('tsoft');
+    if(cb.checked){
+      if(!ensureSaveCredOrCancel()) cb.checked=false;
+    }
   });
 })();
 
@@ -243,14 +240,12 @@ const renderBrands=()=>{
   if(!hasEverListed)setGuideStep(SELECTED.size>0?'tsoft':'brand');
   applySupplierUi()
 };
-
 const toggleBrand=(id,el)=>{
   SELECTED.has(id)?(SELECTED.delete(id),el.classList.remove('sel')):(SELECTED.add(id),el.classList.add('sel'));
   updateBrandChip();
   if(!hasEverListed)setGuideStep(SELECTED.size>0?'tsoft':'brand');
   applySupplierUi()
 };
-
 $('brandList')?.addEventListener('click',e=>{const el=e.target.closest('.brand');if(!el)return;const id=Number(el.dataset.id);Number.isFinite(id)&&toggleBrand(id,el)});
 $('brandList')?.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const el=e.target.closest('.brand');if(!el)return;e.preventDefault();const id=Number(el.dataset.id);Number.isFinite(id)&&toggleBrand(id,el)});
 const pulseBrands=()=>{const list=$('brandList');if(!list)return;list.classList.remove('glow');void list.offsetWidth;list.classList.add('glow');setTimeout(()=>list.classList.remove('glow'),950)};
@@ -269,7 +264,7 @@ async function initBrands(){
   }finally{renderBrands();applySupplierUi()}
 }
 
-/* ✅ daily buttons */
+/* ✅ daily buttons in modals */
 $('tsoftDailyBtn')?.addEventListener('click',e=>{e.preventDefault();toggleDaily('tsoft')});
 $('aideDailyBtn')?.addEventListener('click',e=>{e.preventDefault();toggleDaily('aide')});
 
@@ -284,15 +279,17 @@ const depot=createDepot({
     (!hasEverListed&&guideStep==='aide'&&depot.isReady())&&setGuideStep('list');
     applySupplierUi();
 
-    // ✅ if armed, save Aide daily now
+    // ✅ save Aide if checkbox checked
     try{
-      if(DAILY_SAVE.aide?.adminPassword && DAILY_SAVE.aide?.readPassword){
+      const cb=$('aideSaveToday');
+      if(cb?.checked){
+        if(!ensureSaveCredOrCancel()){ cb.checked=false; return; }
         const raw=depot.getLastRaw()||'';
         if(raw.trim()){
           setStatus('Aide kaydediliyor…','unk');
-          await dailySave(API_BASE,{kind:'aide',adminPassword:DAILY_SAVE.aide.adminPassword,readPassword:DAILY_SAVE.aide.readPassword,data:raw});
+          await dailySave(API_BASE,{kind:'aide',adminPassword:DAILY_SAVE_CRED.adminPassword,readPassword:DAILY_SAVE_CRED.readPassword,data:raw});
           setStatus('Aide kaydedildi','ok');
-          unarmSave('aide');
+          cb.checked=false;
           await refreshDailyMeta();
         }
       }
@@ -300,7 +297,6 @@ const depot=createDepot({
       console.error(err);
       setStatus(String(err?.message||err),'bad');
       alert(String(err?.message||err));
-      unarmSave('aide');
     }
   }
 });
@@ -425,8 +421,8 @@ const setScanState=on=>{
   goBtn&&(goBtn.disabled=on);
   $('f2')&&($('f2').disabled=on);
   $('depoBtn')&&($('depoBtn').disabled=on);
-  $('tsoftDailyBtn')&&($('tsoftDailyBtn').disabled=on || $('tsoftDailyBtn').disabled);
-  $('aideDailyBtn')&&($('aideDailyBtn').disabled=on || $('aideDailyBtn').disabled);
+  $('tsoftDailyBtn')&&($('tsoftDailyBtn').disabled = on || $('tsoftDailyBtn').disabled);
+  $('aideDailyBtn')&&($('aideDailyBtn').disabled = on || $('aideDailyBtn').disabled);
 };
 
 /* ✅ compact T-Soft */
@@ -448,14 +444,8 @@ function compactTsoftCSV(L2all,C2){
 /* generate */
 async function generate(){
   const needDaily = DAILY_SELECTED.tsoft || DAILY_SELECTED.aide;
-  let dailyPassword = '';
 
-  if(needDaily){
-    dailyPassword = prompt('Bugünün verisini kullanmak için okuma şifresi:') || '';
-    if(!dailyPassword.trim()){setStatus('Şifre girilmedi','bad');return false}
-  }
-
-  // T-Soft source
+  // T-Soft source must exist either local file or daily selected
   const file=$('f2')?.files?.[0];
   if(!file && !DAILY_SELECTED.tsoft){alert('Lütfen T-Soft Stok CSV seç veya Bugün verisini seç.');return false}
 
@@ -471,13 +461,17 @@ async function generate(){
     if(selected.length===BRANDS.length&&!confirm('Tüm markaları taramak üzeresiniz. Emin misiniz?'))throw new Error('İptal edildi.');
 
     let t2txt='';
-    if(DAILY_SELECTED.tsoft || DAILY_SELECTED.aide){
+    if(needDaily){
+      const pass = await getReadPassOrPrompt();
       const want=[];
       DAILY_SELECTED.tsoft && want.push('tsoft');
       DAILY_SELECTED.aide && want.push('aide');
 
       setStatus('Bugün verisi alınıyor…','unk');
-      const got=await dailyGet(API_BASE,{date:DAILY_META?.today?.ymd,password:dailyPassword,want});
+      const got=await dailyGet(API_BASE,{date:DAILY_META?.today?.ymd,password:pass,want});
+
+      // ✅ cache read pass only after successful fetch
+      DAILY_READ_CACHE={date:String(DAILY_META?.today?.ymd||''),pass};
 
       if(DAILY_SELECTED.tsoft){
         const d=got?.tsoft;
@@ -539,21 +533,24 @@ async function generate(){
 
     const L2all=p2.rows;
 
-    // ✅ If armed, save compact T-Soft daily now
+    // ✅ save T-Soft if checkbox checked
     try{
-      if(DAILY_SAVE.tsoft?.adminPassword && DAILY_SAVE.tsoft?.readPassword){
-        setStatus('T-Soft kaydediliyor…','unk');
-        const compact=compactTsoftCSV(L2all,C2);
-        await dailySave(API_BASE,{kind:'tsoft',adminPassword:DAILY_SAVE.tsoft.adminPassword,readPassword:DAILY_SAVE.tsoft.readPassword,data:compact});
-        setStatus('T-Soft kaydedildi','ok');
-        unarmSave('tsoft');
-        await refreshDailyMeta();
+      const cb=$('tsoftSaveToday');
+      if(cb?.checked){
+        if(!ensureSaveCredOrCancel()){ cb.checked=false; }
+        else{
+          setStatus('T-Soft kaydediliyor…','unk');
+          const compact=compactTsoftCSV(L2all,C2);
+          await dailySave(API_BASE,{kind:'tsoft',adminPassword:DAILY_SAVE_CRED.adminPassword,readPassword:DAILY_SAVE_CRED.readPassword,data:compact});
+          setStatus('T-Soft kaydedildi','ok');
+          cb.checked=false;
+          await refreshDailyMeta();
+        }
       }
     }catch(err){
       console.error(err);
       setStatus(String(err?.message||err),'bad');
       alert(String(err?.message||err));
-      unarmSave('tsoft');
     }
 
     COMPEL_BRANDS_NORM=new Set(L1.map(r=>normBrand(r[C1.marka]||'')).filter(Boolean));
@@ -567,12 +564,15 @@ async function generate(){
     lockListTitleFromCurrentSelection();setListTitleVisible(true);
     return true
   }catch(e){
+    // unauthorized → clear read cache so it asks again next time
+    if(String(e?.message||'').toLowerCase().includes('unauthorized')) DAILY_READ_CACHE={date:'',pass:''};
+
     console.error(e);
     setStatus(String(e?.message||'Hata (konsol)'),'bad');
     alert(e?.message||String(e));
     return false
   }finally{
-    abortCtrl=null;setScanState(false);applySupplierUi()
+    abortCtrl=null;setScanState(false);applySupplierUi();paintDailyUI()
   }
 }
 
@@ -592,10 +592,13 @@ function resetAll(){
   SELECTED.clear();renderBrands();
   const f2=$('f2');f2&&(f2.value='');
   const n2=$('n2');n2&&(n2.textContent='Yükle',n2.title='Yükle');
+
   TSOFT_OK_SUP_BY_BRAND=new Map();COMPEL_BRANDS_NORM=new Set();
 
   DAILY_SELECTED={tsoft:false,aide:false};
-  DAILY_SAVE={tsoft:null,aide:null};
+  DAILY_READ_CACHE={date:'',pass:''};
+  DAILY_SAVE_CRED=null;
+
   $('tsoftSaveToday')&&($('tsoftSaveToday').checked=false);
   $('aideSaveToday')&&($('aideSaveToday').checked=false);
   paintDailyUI();
@@ -612,17 +615,19 @@ async function handleGo(){
   if(goMode==='clear'){resetAll();return}
   if(!hasEverListed&&guideStep==='list')setGuideStep('done');
   if(!hasEverListed&&!SELECTED.size){alert('Lütfen bir marka seçin');return}
-
   if(!SELECTED.size){clearOnlyLists();setGoMode('clear');return}
+
   const ok=await generate();
   if(ok){hasEverListed=true;setGoMode('list');setGuideStep('done')}
 }
 goBtn&&(goBtn.onclick=handleGo);
 
-/* ✅ arm save daily (aide checkbox) */
+/* ✅ aide save checkbox: only asks once per page */
 $('aideSaveToday')?.addEventListener('change',e=>{
   const cb=e.target;
-  if(cb.checked) armSave('aide'); else unarmSave('aide');
+  if(cb.checked){
+    if(!ensureSaveCredOrCancel()) cb.checked=false;
+  }
 });
 
 /* init */
