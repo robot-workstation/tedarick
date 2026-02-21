@@ -18,12 +18,14 @@ function css(){
 .tagLeft{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tagRight{flex:0 0 auto;text-align:right;white-space:nowrap;opacity:.92;font-weight:1100}
 .tagLeft .nm,.tagLeft .cellTxt{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sepL{border-left:1px solid rgba(147,197,253,.55)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
+/* ✅ theme uyumu: sepL turuncu tonu */
+.sepL{border-left:1px solid rgba(255,106,0,.28)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
 #listTitle,#unmatchedTitle{font-weight:1300!important;font-size:20px!important;letter-spacing:.02em}
 #t1 thead th .hTxt,#t2 thead th .hTxt{display:inline-block;transform-origin:left center}
 th.hdrThin{font-weight:700!important}
 th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
-#t1 thead th,#t2 thead th{position:sticky!important;top:var(--theadTop,0px)!important;z-index:120!important;background:#0b0d12!important;box-shadow:0 1px 0 rgba(31,36,48,.9)}
+/* ✅ İSTENEN: tablo başlık arkaplanı #1b1b1b */
+#t1 thead th,#t2 thead th{position:sticky!important;top:var(--theadTop,0px)!important;z-index:120!important;background:#1b1b1b!important;box-shadow:0 1px 0 rgba(31,36,48,.9)}
 `;
   document.head.appendChild(st)
 }
