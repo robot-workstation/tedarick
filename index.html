@@ -88,6 +88,26 @@ a:hover{text-decoration:underline}
 .pasteHint{position:absolute;left:12px;top:10px;z-index:3;pointer-events:none;font-weight:1100;font-size:14px;opacity:.95;padding:4px 10px;border:1px solid #2a3140;border-radius:999px;background:rgba(11,13,18,.75);box-shadow:0 10px 24px rgba(0,0,0,.35);backdrop-filter:blur(4px)}
 .modal textarea{width:100%;height:220px;resize:vertical;box-sizing:border-box;background:#0b0d12;color:#eaeef7;border:1px solid #2a3140;border-radius:12px;padding:10px;font-weight:800;font-size:14px}
 #depoSpin{position:absolute;left:calc(50% + 100px);top:50%;transform:translate(-50%,-50%) scale(1.875);width:min(180px,60%);opacity:.95;pointer-events:none;z-index:2;filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));border-radius:6px}
+
+/* ✅ daily UI */
+.ctrlStack{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.ctrlRow{display:flex;gap:8px;align-items:stretch;flex-wrap:nowrap}
+.cloudPrev{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:20px;padding:0 8px;border-radius:999px;
+  border:1px solid #1f2430;background:#0f1320;
+  font-weight:1000;font-size:12px;opacity:.9
+}
+.cloudPrev:hover{
+  border-color:#fca5a5;
+  box-shadow:0 0 18px rgba(252,165,165,.55);
+  color:#fca5a5;
+}
+.cloudBtn{justify-content:center;min-width:120px;padding:0 10px}
+.cloudBtn.sel{background:#1f2a44;border-color:#6b7da6}
+.saveLine{display:flex;gap:10px;align-items:center;margin-top:8px}
+.saveLine input{transform:scale(1.15)}
+.saveLine span{opacity:.92;font-weight:1000}
 </style></head>
 <body><main class="layout">
 <header class="siteHeader"><div class="siteTitle">Tedarick-G</div></header>
@@ -100,8 +120,25 @@ a:hover{text-decoration:underline}
 <button type="button" class="ddItem" id="supplierAddBtn">Tedarikçi ekle</button>
 <div class="ddEmpty"></div></div></div>
 <button id="brandHintBtn" class="file" type="button" title="Marka kutularını işaretle"><span class="fbtn">2) Marka Seç</span></button>
-<label class="file" id="sescBox" title="T-Soft Stok (CSV)"><span class="fbtn">3) T-Soft Stok</span><span class="fname hide" id="n2">Yükle</span><input id="f2" type="file" accept=".csv,text/csv"></label>
-<button id="depoBtn" class="file" type="button" title="Aide Stok"><span class="fbtn">4) Aide Stok</span><span class="fname hide" id="n4">Yükle</span></button>
+
+<!-- ✅ T-Soft + daily -->
+<div class="ctrlStack" id="tsoftStack">
+  <span class="cloudPrev" id="tsoftPrev" style="display:none"></span>
+  <div class="ctrlRow">
+    <label class="file" id="sescBox" title="T-Soft Stok (CSV)"><span class="fbtn">3) T-Soft Stok</span><span class="fname hide" id="n2">Yükle</span><input id="f2" type="file" accept=".csv,text/csv"></label>
+    <button id="tsoftDailyBtn" class="file cloudBtn" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
+  </div>
+</div>
+
+<!-- ✅ Aide + daily -->
+<div class="ctrlStack" id="aideStack">
+  <span class="cloudPrev" id="aidePrev" style="display:none"></span>
+  <div class="ctrlRow">
+    <button id="depoBtn" class="file" type="button" title="Aide Stok"><span class="fbtn">4) Aide Stok</span><span class="fname hide" id="n4">Yükle</span></button>
+    <button id="aideDailyBtn" class="file cloudBtn" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
+  </div>
+</div>
+
 <button id="go" title="Listele">Listele</button><button id="dl1" disabled>CSV Çıktı</button></div>
 <div class="ibox" id="infoBox">
 <span class="chip muted" id="brandStatus">Markalar yükleniyor…</span>
@@ -126,12 +163,31 @@ a:hover{text-decoration:underline}
 <a class="popLinkTitle" href="https://sescibaba-com.tsoftpanel.com/frame/app-store/app.csvexport/products/export" target="_blank" rel="noopener" title="Yeni sekmede aç">T-Soft &gt; Ürünler &gt; Excel Ürün Sihirbazı &gt; Exel Ürün Dışa Aktar</a>
 <div class="miniSep" aria-hidden="true"></div>
 <div class="tsoftCols">→Web Servis Kodu<br>→Ürün Adı<br>→Tedarikçi Ürün Kodu<br>→Barkod<br>→Stok<br>→Marka<br>→SEO Link</div>
+
+<!-- ✅ save daily checkbox -->
+<div class="miniSep" aria-hidden="true"></div>
+<label class="saveLine" title="Yetkili için: Bugünün verisi olarak kaydeder (overwrite)">
+  <input id="tsoftSaveToday" type="checkbox">
+  <span>Bugünün verisi olarak kaydet (Yetkili)</span>
+</label>
+
 </div><div class="tsoftRight" aria-label="Yardım görseli">
 <button class="tsoftThumb" id="tsoftThumb" type="button" title="Büyüt"><img id="tsoftThumbImg" src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Ekran-Resmi-2026-02-19-212136.png" alt="T-Soft dışa aktar ekran görüntüsü" loading="lazy"></button>
 </div></div></div></div></div>
 
 <div class="modal" id="depoModal" aria-hidden="true"><div class="modalInner small" id="depoInner">
-<div class="modalBtns"><button id="depoLoad" type="button">Yükle</button><button id="depoPasteBtn" type="button">Yapıştır</button><button id="depoClear" type="button">Temizle</button><button id="depoClose" type="button">Kapat</button></div>
+<div class="modalBtns">
+  <button id="depoLoad" type="button">Yükle</button>
+  <button id="depoPasteBtn" type="button">Yapıştır</button>
+  <button id="depoClear" type="button">Temizle</button>
+  <button id="depoClose" type="button">Kapat</button>
+
+  <!-- ✅ save daily checkbox -->
+  <label class="saveLine" style="margin-left:auto" title="Yetkili için: Bugünün verisi olarak kaydeder (overwrite)">
+    <input id="aideSaveToday" type="checkbox">
+    <span>Bugünün verisi olarak kaydet (Yetkili)</span>
+  </label>
+</div>
 <div class="pasteWrap"><div class="pasteHint">Buraya Yapıştır</div><textarea id="depoPaste"></textarea>
 <img id="depoSpin" src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Aidestek.webp" alt="">
 </div></div></div>
