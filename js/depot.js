@@ -7,7 +7,8 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
   let lastRawText='';
 
   const depoBtn=$('depoBtn'),depoModal=$('depoModal'),depoInner=$('depoInner'),depoPaste=$('depoPaste'),
-    depoLoad=$('depoLoad'),depoPasteBtn=$('depoPasteBtn'),depoClose=$('depoClose'),depoClear=$('depoClear'),depoSpin=$('depoSpin');
+    depoLoad=$('depoLoad'),depoPasteBtn=$('depoPasteBtn'),depoClose=$('depoClose'),depoClear=$('depoClear'),depoSpin=$('depoSpin'),
+    aideSaveLine=$('aideSaveLine'),aideSaveToday=$('aideSaveToday');
 
   const depotCodeNorm=s=>(s??'').toString().replace(/\u00A0/g,' ').trim().replace(/\s+/g,' ').toLocaleUpperCase(TR);
   const depotCodeAlt=n=>{if(!n||!/^[0-9]+$/.test(n))return '';return n.replace(/^0+(?=\d)/,'')};
@@ -102,6 +103,15 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
   }
 
   const syncDepoSpin=()=>{if(!depoSpin)return;depoSpin.style.display=((depoPaste?.value||'').trim().length>0)?'none':'block'};
+  const syncAideSaveLine=()=>{
+    const has=((depoPaste?.value||'').trim().length>0);
+    if(aideSaveLine) aideSaveLine.style.display=has?'':'none';
+    if(!has && aideSaveToday && aideSaveToday.checked){
+      aideSaveToday.checked=false;
+      aideSaveToday.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  };
+
   const setDepoUi=loaded=>{
     const n4=$('n4');if(n4){n4.textContent=loaded?'Yüklendi':'Yükle';n4.title=loaded?`Depo yüklü (${L4.length})`:'Yükle'}
     ui?.setChip?.('l4Chip',loaded?`Aide:${L4.length}`:'Aide:-')
@@ -119,7 +129,7 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
     })
   };
 
-  const showDepo=()=>{if(!depoModal)return;depoModal.style.display='block';depoModal.setAttribute('aria-hidden','false');placePopover();syncDepoSpin();setTimeout(()=>depoPaste?.focus(),0)};
+  const showDepo=()=>{if(!depoModal)return;depoModal.style.display='block';depoModal.setAttribute('aria-hidden','false');placePopover();syncDepoSpin();syncAideSaveLine();setTimeout(()=>depoPaste?.focus(),0)};
   const hideDepo=()=>{if(!depoModal)return;depoModal.style.display='none';depoModal.setAttribute('aria-hidden','true');
     if(depoInner){depoInner.style.position='';depoInner.style.left='';depoInner.style.top='';depoInner.style.visibility=''}
   };
@@ -186,7 +196,7 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
   const reset=()=>{
     depotReady=false;L4=[];C4={};idxD=new Map();idxBR=new Map();brandLabelByNorm=new Map();
     lastRawText='';
-    depoPaste&&(depoPaste.value='');syncDepoSpin();setDepoUi(false)
+    depoPaste&&(depoPaste.value='');syncDepoSpin();syncAideSaveLine();setDepoUi(false)
   };
 
   depoBtn&&(depoBtn.onclick=showDepo);
@@ -198,23 +208,23 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
       depoPasteBtn.disabled=true;
       const txt=await navigator.clipboard.readText();
       if(!txt?.trim()){alert('Panoda yapıştırılacak metin yok.');return}
-      depoPaste&&(depoPaste.value=txt);syncDepoSpin();depoPaste?.focus()
+      depoPaste&&(depoPaste.value=txt);syncDepoSpin();syncAideSaveLine();depoPaste?.focus()
     }catch(e){console.error(e);alert('Pano okunamadı. Tarayıcı izinlerini kontrol edin.')}
     finally{depoPasteBtn&&(depoPasteBtn.disabled=false)}
   });
 
   if(depoPaste){
-    depoPaste.addEventListener('input',syncDepoSpin);
-    depoPaste.addEventListener('paste',()=>setTimeout(syncDepoSpin,0))
+    depoPaste.addEventListener('input',()=>{syncDepoSpin();syncAideSaveLine()});
+    depoPaste.addEventListener('paste',()=>setTimeout(()=>{syncDepoSpin();syncAideSaveLine()},0))
   }
-  depoClear&&(depoClear.onclick=()=>{depoPaste&&(depoPaste.value='');syncDepoSpin();depoPaste?.focus()});
+  depoClear&&(depoClear.onclick=()=>{depoPaste&&(depoPaste.value='');syncDepoSpin();syncAideSaveLine();depoPaste?.focus()});
   depoLoad&&(depoLoad.onclick=()=>{loadDepotFromText(depoPaste?.value||'');hideDepo()});
 
   addEventListener('keydown',e=>{if(e.key==='Escape'&&depoModal?.style.display!=='none')hideDepo()});
   addEventListener('resize',()=>{depoModal?.style.display==='block'&&placePopover()});
   addEventListener('scroll',()=>{depoModal?.style.display==='block'&&placePopover()},true);
 
-  setDepoUi(false);syncDepoSpin();
+  setDepoUi(false);syncDepoSpin();syncAideSaveLine();
 
   return{
     reset,
@@ -222,7 +232,6 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
     agg:depotAgg,
     count:()=>L4.length,
     unmatchedRows,
-    /* ✅ programmatic load (daily) */
     loadText:(text)=>loadDepotFromText(text),
     getLastRaw:()=>lastRawText
   }
