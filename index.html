@@ -35,8 +35,8 @@
   --overlay-strong:rgba(0,0,0,.78);
   --shadow:rgba(0,0,0,.55);
 
-  /* ✅ NEW: table header bg (lighter than before, still contrast) */
-  --thead-bg:#242424; /* was effectively --bg-main (#1E1E1E) */
+  /* ✅ İSTENEN: tablo başlık arkaplanı */
+  --thead-bg:#1b1b1b;
 }
 
 html,body{min-height:100%;overflow-x:hidden}
@@ -141,7 +141,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{border-bottom:1px solid var(--border);padding:9px 6px;text-align:center;vertical-align:middle;font-size:14px;line-height:1.1}
 td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ✅ header background lightened */
+/* ✅ İSTENEN: thead/th arkaplanı */
 th{
   position:sticky;top:0;z-index:2;
   background:var(--thead-bg);
@@ -286,10 +286,12 @@ a:hover{text-decoration:underline}
 
 <div class="imgOverlay" id="imgOverlay" aria-hidden="true"><div class="lbWrap"><img id="imgOverlayImg" alt="Önizleme"></div></div>
 
+<!-- ✅ TSOFT MODAL -->
 <div class="modal" id="tsoftModal" aria-hidden="true"><div class="modalInner small popInner" id="tsoftInner">
 <div class="popPickWrap">
-  <button id="tsoftClose" class="popPick" type="button">products.csv Yükle</button>
+  <!-- ✅ İSTENEN: Bugün butonu 1. sıraya -->
   <button id="tsoftDailyBtn" class="cloudBtnSmall" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
+  <button id="tsoftClose" class="popPick" type="button">products.csv Yükle</button>
   <button id="tsoftDismiss" class="popDismiss" type="button">Kapat</button>
 </div>
 
@@ -308,10 +310,12 @@ a:hover{text-decoration:underline}
 <button class="tsoftThumb" id="tsoftThumb" type="button" title="Büyüt"><img id="tsoftThumbImg" src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Ekran-Resmi-2026-02-19-212136.png" alt="T-Soft dışa aktar ekran görüntüsü" loading="lazy"></button>
 </div></div></div></div></div>
 
+<!-- ✅ AIDE MODAL -->
 <div class="modal" id="depoModal" aria-hidden="true"><div class="modalInner small" id="depoInner">
 <div class="modalBtns">
+  <!-- ✅ İSTENEN: Bugün butonu Yükle'den önce + aynı yükseklik -->
+  <button id="aideDailyBtn" class="cloudBtnSmall" style="height:36px" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
   <button id="depoLoad" type="button">Yükle</button>
-  <button id="aideDailyBtn" class="cloudBtnSmall" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
   <button id="depoPasteBtn" type="button">Yapıştır</button>
   <button id="depoClear" type="button">Temizle</button>
   <button id="depoClose" type="button">Kapat</button>
