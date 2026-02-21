@@ -112,9 +112,10 @@ a:hover{text-decoration:underline}
 .cloudBtnSmall:hover{background:#1f2a44;border-color:#6b7da6}
 .cloudBtnSmall.sel{background:#1f2a44;border-color:#6b7da6}
 
-.saveLine{display:flex;gap:10px;align-items:center}
+/* ✅ Yetkili satırı tek satır kalsın (taşarsa taşsın) */
+.saveLine{display:flex;gap:10px;align-items:center;white-space:nowrap;overflow:visible;position:relative;z-index:999}
 .saveLine input{transform:scale(1.15)}
-.saveLine span{opacity:.92;font-weight:1000}
+.saveLine span{opacity:.92;font-weight:1000;white-space:nowrap}
 .saveLine.left{justify-content:flex-start}
 </style></head>
 <body><main class="layout">
@@ -130,13 +131,11 @@ a:hover{text-decoration:underline}
 
 <button id="brandHintBtn" class="file" type="button" title="Marka kutularını işaretle"><span class="fbtn">2) Marka Seç</span></button>
 
-<!-- ✅ T-Soft -->
 <div class="ctrlStack" id="tsoftStack">
   <span class="cloudPrev" id="tsoftPrev" style="display:none"></span>
   <label class="file" id="sescBox" title="T-Soft Stok (CSV)"><span class="fbtn">3) T-Soft Stok</span><span class="fname hide" id="n2">Yükle</span><input id="f2" type="file" accept=".csv,text/csv"></label>
 </div>
 
-<!-- ✅ Aide -->
 <div class="ctrlStack" id="aideStack">
   <span class="cloudPrev" id="aidePrev" style="display:none"></span>
   <button id="depoBtn" class="file" type="button" title="Aide Stok"><span class="fbtn">4) Aide Stok</span><span class="fname hide" id="n4">Yükle</span></button>
@@ -162,7 +161,6 @@ a:hover{text-decoration:underline}
 
 <div class="imgOverlay" id="imgOverlay" aria-hidden="true"><div class="lbWrap"><img id="imgOverlayImg" alt="Önizleme"></div></div>
 
-<!-- ✅ TSOFT MODAL -->
 <div class="modal" id="tsoftModal" aria-hidden="true"><div class="modalInner small popInner" id="tsoftInner">
 <div class="popPickWrap">
   <button id="tsoftClose" class="popPick" type="button">products.csv Yükle</button>
@@ -185,7 +183,6 @@ a:hover{text-decoration:underline}
 <button class="tsoftThumb" id="tsoftThumb" type="button" title="Büyüt"><img id="tsoftThumbImg" src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Ekran-Resmi-2026-02-19-212136.png" alt="T-Soft dışa aktar ekran görüntüsü" loading="lazy"></button>
 </div></div></div></div></div>
 
-<!-- ✅ AIDE MODAL -->
 <div class="modal" id="depoModal" aria-hidden="true"><div class="modalInner small" id="depoInner">
 <div class="modalBtns">
   <button id="depoLoad" type="button">Yükle</button>
