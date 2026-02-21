@@ -15,14 +15,20 @@ const AKALIN_BRAND_NAMES=[/* (liste aynı) */"Acoustic Energy","AIAIAI","AMS-Nev
 /* guided pulse */
 let guideStep='brand';
 const GUIDE_DUR={brand:1500,tsoft:1250,aide:1050,list:900};
-const clearGuidePulse=()=>['brandHintBtn','sescBox','depoBtn','go'].forEach(id=>{const el=$(id);el&&(el.classList.remove('guidePulse'),el.style.removeProperty('--guideDur'))});
+const clearGuidePulse=()=>['brandHintBtn','sescBox','depoBtn','go','tsoftDailyBtn','aideDailyBtn'].forEach(id=>{
+  const el=$(id);el&&(el.classList.remove('guidePulse'),el.style.removeProperty('--guideDur'))
+});
 const setGuideStep=s=>(guideStep=s||'done',updateGuideUI());
 const updateGuideUI=()=>{
   clearGuidePulse();
   if(ACTIVE_SUPPLIER===SUPPLIERS.AKALIN||guideStep==='done')return;
   const dur=GUIDE_DUR[guideStep]||1200;
   const apply=el=>el&&(el.style.setProperty('--guideDur',`${dur}ms`),el.classList.add('guidePulse'));
-  guideStep==='brand'?apply($('brandHintBtn')):guideStep==='tsoft'?apply($('sescBox')):guideStep==='aide'?apply($('depoBtn')):guideStep==='list'&&apply($('go'))
+
+  if(guideStep==='brand') apply($('brandHintBtn'));
+  else if(guideStep==='tsoft') apply($('sescBox'));
+  else if(guideStep==='aide') apply($('depoBtn'));
+  else if(guideStep==='list') apply($('go'));
 };
 
 /* ui */
@@ -128,10 +134,12 @@ function paintDailyUI(){
   const yA=!!DAILY_META?.yesterday?.aide?.exists;
 
   if(tPrev){
-    if(yDmy && yT){tPrev.style.display='';tPrev.textContent=yDmy;tPrev.title=`Dün: ${yDmy}`} else {tPrev.style.display='none';tPrev.textContent=''}
+    if(yDmy && yT){tPrev.style.display='';tPrev.textContent=yDmy;tPrev.title=`Dün: ${yDmy}`}
+    else {tPrev.style.display='none';tPrev.textContent=''}
   }
   if(aPrev){
-    if(yDmy && yA){aPrev.style.display='';aPrev.textContent=yDmy;aPrev.title=`Dün: ${yDmy}`} else {aPrev.style.display='none';aPrev.textContent=''}
+    if(yDmy && yA){aPrev.style.display='';aPrev.textContent=yDmy;aPrev.title=`Dün: ${yDmy}`}
+    else {aPrev.style.display='none';aPrev.textContent=''}
   }
 }
 
@@ -150,10 +158,8 @@ function toggleDaily(kind){
   if(kind==='tsoft'){
     DAILY_SELECTED.tsoft=!DAILY_SELECTED.tsoft;
     paintDailyUI();
-
-    // ✅ seçilince modal kapansın + pulse sonraki butona geçsin
     if(DAILY_SELECTED.tsoft){
-      closeModalByButton('tsoftDismiss');
+      closeModalByButton('tsoftDismiss'); // otomatik kapat
       if(!hasEverListed && SELECTED.size>0) setGuideStep('aide');
     }else{
       if(!hasEverListed && SELECTED.size>0) setGuideStep('tsoft');
@@ -161,9 +167,8 @@ function toggleDaily(kind){
   }else if(kind==='aide'){
     DAILY_SELECTED.aide=!DAILY_SELECTED.aide;
     paintDailyUI();
-
     if(DAILY_SELECTED.aide){
-      closeModalByButton('depoClose');
+      closeModalByButton('depoClose'); // otomatik kapat
       if(!hasEverListed && SELECTED.size>0) setGuideStep('list');
     }else{
       if(!hasEverListed && SELECTED.size>0) setGuideStep('aide');
@@ -174,7 +179,7 @@ function toggleDaily(kind){
 /* ✅ one-time save creds (admin + read pass) */
 function ensureSaveCredOrCancel(){
   if(DAILY_SAVE_CRED?.adminPassword && DAILY_SAVE_CRED?.readPassword) return true;
-  const admin=prompt('Yetkili şifre (DDMMYYYY):');
+  const admin=prompt('Yetkili Şifre:'); // ✅ değişti
   if(!admin) return false;
   const read=prompt('Bugün için okuma şifresi:');
   if(!read?.trim()) return false;
@@ -214,7 +219,6 @@ async function getReadPassOrPrompt(){
   addEventListener('keydown',e=>{if(e.key!=='Escape'||!isOpen())return;e.preventDefault();e.stopPropagation();openPicker()});
   addEventListener('resize',()=>isOpen()&&place());addEventListener('scroll',()=>isOpen()&&place(),true);
 
-  // ✅ tsoft save checkbox: only asks once per page
   const cb=$('tsoftSaveToday');
   cb&&cb.addEventListener('change',()=>{
     if(cb.checked){
