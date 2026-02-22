@@ -20,21 +20,16 @@
   --text:#E6E6E6;
   --text-2:#A0A0A0;
 
-  /* ✅ THEME: turuncu -> pembe/kırmızı (#e83c61 yakınları) */
   --accent:#e83c61;
   --accent-hover:#ff5579;
   --accent-soft:rgba(232,60,97,.12);
   --accent-glow:rgba(232,60,97,.55);
 
-  /* ✅ link rengi de tema uyumlu */
   --link:#ff6f95;
 
   --ok:#86efac;
-
-  /* genel "bad" rengi (chip vb.) */
   --bad:#ff4d79;
 
-  /* ✅ İSTENEN: uyarı yazı rengi */
   --warn:#ff3064;
 
   --unk:#fcd34d;
@@ -43,14 +38,11 @@
   --overlay-strong:rgba(0,0,0,.78);
   --shadow:rgba(0,0,0,.55);
 
-  /* ✅ tablo başlık arkaplanı */
   --thead-bg:#1b1b1b;
 
-  /* ✅ uyarı yazıları için açık gri halo */
   --warn-halo-1:rgba(245,245,245,.38);
   --warn-halo-2:rgba(245,245,245,.20);
 
-  /* ✅ siyah kontur (text-stroke yoksa çoklu shadow ile) */
   --stroke:#000;
 }
 
@@ -156,7 +148,6 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{border-bottom:1px solid var(--border);padding:9px 6px;text-align:center;vertical-align:middle;font-size:14px;line-height:1.1}
 td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ✅ thead/th arkaplanı */
 th{
   position:sticky;top:0;z-index:2;
   background:var(--thead-bg);
@@ -170,19 +161,14 @@ td.eanCell{overflow:visible;text-overflow:clip}
 td.seqCell{font-weight:1100}
 td.statusBold{font-weight:1100}
 
-/* ✅ uyarılar (Hatalı / Eşleşmedi) */
 td.flagBad{color:var(--warn)!important;font-weight:1200!important}
-
-/* halo + siyah kontur */
 td.flagBad .cellTxt,
 td.flagBad .nm{
-  /* kontur: 4 yön shadow */
   text-shadow:
     -0.8px 0 var(--stroke),
      0.8px 0 var(--stroke),
      0 -0.8px var(--stroke),
      0  0.8px var(--stroke),
-    /* halo aynı kalsın */
      0 0 2px var(--warn-halo-2),
      0 0 10px var(--warn-halo-1);
 }
@@ -215,18 +201,17 @@ a:hover{text-decoration:underline}
 .tsoftLeft{flex:1 1 auto;min-width:0;overflow:visible}
 .tsoftRight{flex:0 0 230px;max-width:230px;display:flex;justify-content:flex-end;align-items:center;align-self:stretch;margin-left:auto;position:relative;z-index:10}
 
-/* ✅ çerçeveyi yok et: border/background/radius kaldır */
 .tsoftThumb{
   width:230px;height:150px;
   border:0;background:transparent;border-radius:0;
   overflow:visible;cursor:pointer;display:block;padding:0;
 }
 
-/* ✅ küçük resim %10 büyüsün, yer değişmesin */
+/* ✅ İSTENEN: küçük resim %15 büyüsün (konum aynı, sadece scale) */
 .tsoftThumb img{
   width:100%;height:100%;
   object-fit:contain;display:block;
-  transform:scale(1.10);
+  transform:scale(1.15);
   transform-origin:center center;
 }
 
@@ -255,7 +240,6 @@ a:hover{text-decoration:underline}
   font-weight:800;font-size:14px
 }
 
-/* ✅ Aidestek.webp */
 #depoSpin{
   position:absolute;
   left:calc(50% + 100px);
@@ -294,7 +278,6 @@ a:hover{text-decoration:underline}
 .saveLine span{opacity:.92;font-weight:1000;white-space:nowrap}
 .saveLine.left{justify-content:flex-start}
 
-/* ✅ sepL rengi theme uyumlu */
 .sepL{border-left:1px solid rgba(232,60,97,.28)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
 </style></head>
 <body><main class="layout">
@@ -401,7 +384,6 @@ a:hover{text-decoration:underline}
 (()=>{const b=document.getElementById('tsoftThumb'),i=document.getElementById('tsoftThumbImg'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!b||!i||!o||!oi)return;let t=null;const open=src=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=src;o.classList.add('show');o.setAttribute('aria-hidden','false')};const close=()=>{o.classList.add('closing');t=setTimeout(()=>{o.classList.remove('show');o.classList.remove('closing');o.setAttribute('aria-hidden','true');oi.removeAttribute('src');t=null},220)};b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open(i.currentSrc||i.src)});o.addEventListener('click',e=>{e.preventDefault();close()});addEventListener('keydown',e=>{e.key==='Escape'&&o.classList.contains('show')&&close()});const m=document.getElementById('tsoftModal'),d=document.getElementById('tsoftDismiss');m&&d&&d.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();m.style.display='none';m.setAttribute('aria-hidden','true')});})();
 </script>
 
-<!-- ✅ Aide webp de tıklayınca aynı overlay ile büyüsün -->
 <script type="module">
 (()=>{const img=document.getElementById('depoSpin'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!img||!o||!oi)return;let t=null;const open=()=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=img.currentSrc||img.src;o.classList.add('show');o.setAttribute('aria-hidden','false')};img.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});})();
 </script>
