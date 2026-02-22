@@ -1,3 +1,5 @@
+// render.js (TAMAMI - DÜZELTİLMİŞ)
+
 import { esc,stockToNumber } from './utils.js';
 import { COLS } from './match.js';
 const $=id=>document.getElementById(id);
@@ -165,18 +167,41 @@ export function createRenderer({ui}={}){
     if(!U.length){sec&&(sec.style.display='none')}
     else{
       sec&&(sec.style.display='');
-      const UCOLS=["Sıra","Marka","Compel Ürün Adı","T-Soft Ürün Adı","Aide Ürün Adı"],W2=[6,12,26,28,28];
+
+      // ✅ İSTENEN: Compel Ürün Kodu ve T-Soft Ürün Kodu sütunları eklendi
+      const UCOLS=[
+        "Sıra",
+        "Marka",
+        "Compel Ürün Kodu",
+        "Compel Ürün Adı",
+        "T-Soft Ürün Kodu",
+        "T-Soft Ürün Adı",
+        "Aide Ürün Adı"
+      ];
+
+      // Genişlikler (toplam ~100)
+      const W2=[6,12,11,23,11,22,15];
 
       const head2=UCOLS.map(c=>{
-        const sep=(c==="T-Soft Ürün Adı"||c==="Aide Ürün Adı")?' sepL':'';
+        const sep=(c==="T-Soft Ürün Kodu"||c==="Aide Ürün Adı")?' sepL':'';
         return `<th class="${sep.trim()}" title="${esc(c)}"><span class="hTxt">${fmtHdr(c)}</span></th>`
       }).join('');
 
       const body2=U.map((r,i)=>{
-        const seq=r["Sıra"]??String(i+1),brand=r["Marka"]??'';
-        const cNm=r["Compel Ürün Adı"]??'',cLn=r._clink||'',cPulse=!!r._pulseC;
-        const tNm=r["T-Soft Ürün Adı"]??'',tLn=r._seo||'';
-        const aNm=r["Aide Ürün Adı"]??r["Depo Ürün Adı"]??'',aPulse=!!r._pulseD;
+        const seq=r["Sıra"]??String(i+1);
+        const brand=r["Marka"]??'';
+
+        const cCode=(r["Compel Ürün Kodu"]??'').toString().trim();
+        const cNm=r["Compel Ürün Adı"]??'';
+        const cLn=r._clink||'';
+        const cPulse=!!r._pulseC;
+
+        const tCode=(r["T-Soft Ürün Kodu"]??'').toString().trim();
+        const tNm=r["T-Soft Ürün Adı"]??'';
+        const tLn=r._seo||'';
+
+        const aNm=r["Aide Ürün Adı"]??r["Depo Ürün Adı"]??'';
+        const aPulse=!!r._pulseD;
 
         const cNum=stockToNumber(r._cstokraw??'',{source:'compel'});
         const cTag=cNm?(cNum<=0?'(Stok Yok)':'(Stok Var)'):'';
@@ -187,11 +212,30 @@ export function createRenderer({ui}={}){
         const aNum=Number(r._dstok??0);
         const aTag=aNm?(aNum<=0?'(Stok Yok)':`(Stok: ${fmtNum(aNum)})`):'';
 
-        const compel=cNm?`<div class="tagFlex"><span class="tagLeft">${cellName(cNm,cLn,cPulse)}</span><span class="tagRight">${esc(cTag)}</span></div>`:`<span class="cellTxt">—</span>`;
-        const tsoft=tNm?`<div class="tagFlex"><span class="tagLeft">${cellName(tNm,tLn,false)}</span><span class="tagRight">${esc(tTag)}</span></div>`:`<span class="cellTxt">—</span>`;
-        const aide=aNm?`<div class="tagFlex" title="${esc(aNm)}"><span class="cellTxt tagLeft${aPulse?' namePulse':''}">${esc(aNm)}</span><span class="tagRight">${esc(aTag)}</span></div>`:`<span class="cellTxt">—</span>`;
+        const compelNameCell=cNm
+          ? `<div class="tagFlex"><span class="tagLeft">${cellName(cNm,cLn,cPulse)}</span><span class="tagRight">${esc(cTag)}</span></div>`
+          : `<span class="cellTxt">—</span>`;
 
-        return `<tr id="u_${i}"><td class="seqCell" title="${esc(seq)}"><span class="cellTxt">${esc(seq)}</span></td><td title="${esc(brand)}"><span class="cellTxt">${esc(brand)}</span></td><td class="left nameCell">${compel}</td><td class="left nameCell sepL">${tsoft}</td><td class="left sepL">${aide}</td></tr>`
+        const tsoftNameCell=tNm
+          ? `<div class="tagFlex"><span class="tagLeft">${cellName(tNm,tLn,false)}</span><span class="tagRight">${esc(tTag)}</span></div>`
+          : `<span class="cellTxt">—</span>`;
+
+        const aideCell=aNm
+          ? `<div class="tagFlex" title="${esc(aNm)}"><span class="cellTxt tagLeft${aPulse?' namePulse':''}">${esc(aNm)}</span><span class="tagRight">${esc(aTag)}</span></div>`
+          : `<span class="cellTxt">—</span>`;
+
+        const compelCodeCell=cCode ? `<span class="cellTxt" title="${esc(cCode)}">${esc(cCode)}</span>` : `<span class="cellTxt">—</span>`;
+        const tsoftCodeCell=tCode ? `<span class="cellTxt" title="${esc(tCode)}">${esc(tCode)}</span>` : `<span class="cellTxt">—</span>`;
+
+        return `<tr id="u_${i}">
+          <td class="seqCell" title="${esc(seq)}"><span class="cellTxt">${esc(seq)}</span></td>
+          <td title="${esc(brand)}"><span class="cellTxt">${esc(brand)}</span></td>
+          <td class="tightCol" title="${esc(cCode)}">${compelCodeCell}</td>
+          <td class="left nameCell">${compelNameCell}</td>
+          <td class="tightCol sepL" title="${esc(tCode)}">${tsoftCodeCell}</td>
+          <td class="left nameCell">${tsoftNameCell}</td>
+          <td class="left sepL">${aideCell}</td>
+        </tr>`
       }).join('');
 
       $('t2').innerHTML=colGrp(W2)+`<thead><tr>${head2}</tr></thead><tbody>${body2}</tbody>`
