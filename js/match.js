@@ -52,9 +52,18 @@ const normSeo=raw=>{
   return SEO+u.replace(/^\/+/,'');
 };
 
+/* ✅ EAN split */
 const eans=v=>{
   v=(v??'').toString().trim();if(!v)return [];
   return v.split(/[^0-9]+/g).map(D).filter(x=>x.length>=8)
+};
+
+/* ✅ tek leading-zero varyantı (sadece 1 tane 0) */
+const eanAlt1 = (x)=>{
+  x = D(x||'');
+  if(!x) return '';
+  if(x.startsWith('0') && x.length>1) return x.slice(1);
+  return '';
 };
 
 export function createMatcher({getDepotAgg,isDepotReady}={}){
@@ -82,9 +91,19 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
 
   const byEan=r1=>{
     const br1=B(r1[C1.marka]||'');
-    for(const e of eans(r1[C1.ean]||'')){
-      const arr=idxB.get(e);
-      if(arr?.length)return arr.find(r2=>B(r2[C2.marka]||'')===br1)||arr[0]
+    for(const e0 of eans(r1[C1.ean]||'')){
+      // 1) direkt dene
+      let arr=idxB.get(e0);
+
+      // 2) ✅ tek leading zero varsa 0'sızını da dene (Compel 0'lı, T-Soft 0'sız senaryosu)
+      if((!arr || !arr.length) && e0.startsWith('0')){
+        const e1 = e0.slice(1);
+        arr = idxB.get(e1) || arr;
+      }
+
+      if(arr?.length){
+        return arr.find(r2=>B(r2[C2.marka]||'')===br1)||arr[0]
+      }
     }
     return null
   };
@@ -121,9 +140,23 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
 
   const eanDur=(aRaw,bRaw2,ok)=>{
     if(!ok)return '—';
-    const a=new Set(eans(aRaw||'')),b=eans(bRaw2||'');
+    // ✅ Compel EAN set: hem aslı hem (tek 0 kaldırılmış) varyantı
+    const a=new Set();
+    for(const x of eans(aRaw||'')){
+      a.add(x);
+      const alt = eanAlt1(x);
+      if(alt) a.add(alt);
+    }
+
+    const b=eans(bRaw2||'');
     if(!a.size||!b.length)return 'Eşleşmedi';
-    for(const x of b)if(a.has(x))return 'Eşleşti';
+
+    for(const x of b){
+      if(a.has(x)) return 'Eşleşti';
+      // ✅ T-Soft tarafı 0'sızsa Compel 0'lı olabilir: b'ye tek 0 eklenmiş varyantı da dene
+      const altB = ('0' + x);
+      if(a.has(altB)) return 'Eşleşti';
+    }
     return 'Eşleşmedi'
   };
 
