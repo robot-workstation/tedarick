@@ -114,19 +114,29 @@ export function createRenderer({ui}={}){
       return `<th class="${cls}" title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`
     }).join('');
 
-    // ✅ Üst tablo sadece eşleşenleri gösterir
-    // Alfabetik: Marka > Compel Ürün Adı > Compel Ürün Kodu > T-Soft Ürün Adı (stabil)
+    // ✅ ÜST TABLO: önce Compel stok "Var" olanlar, sonra "Yok" olanlar; kendi içinde alfabetik
     const normS=s=>String(s??'').trim();
     const cmpTR=(a,b)=>normS(a).localeCompare(normS(b),'tr',{sensitivity:'base'});
+    const wCompel=r=>{
+      // stok yok -> 1 (alta), stok var -> 0 (üste)
+      const n=stockToNumber(r?._s1raw??'',{source:'compel'});
+      return n>0?0:1
+    };
+
     const Rview=(R||[])
       .filter(r=>!!r?._m)
       .map((row,idx)=>({row,idx}))
       .sort((A,B)=>{
         const a=A.row,b=B.row;
+
+        const w=(wCompel(a)-wCompel(b));
+        if(w) return w;
+
         const ab=cmpTR(a?.["Marka"],b?.["Marka"]); if(ab) return ab;
         const an=cmpTR(a?.["Ürün Adı (Compel)"],b?.["Ürün Adı (Compel)"]); if(an) return an;
         const ac=cmpTR(a?.["Ürün Kodu (Compel)"],b?.["Ürün Kodu (Compel)"]); if(ac) return ac;
         const tn=cmpTR(a?.["Ürün Adı (T-Soft)"],b?.["Ürün Adı (T-Soft)"]); if(tn) return tn;
+
         return A.idx-B.idx;
       })
       .map(x=>x.row);
@@ -168,7 +178,7 @@ export function createRenderer({ui}={}){
     else{
       sec&&(sec.style.display='');
 
-      // ✅ İSTENEN: Compel Ürün Kodu ve T-Soft Ürün Kodu sütunları eklendi
+      // ✅ ALT TABLO: istenen sütunlar + separasyon
       const UCOLS=[
         "Sıra",
         "Marka",
@@ -179,11 +189,11 @@ export function createRenderer({ui}={}){
         "Aide Ürün Adı"
       ];
 
-      // Genişlikler (toplam ~100)
       const W2=[6,12,11,23,11,22,15];
 
       const head2=UCOLS.map(c=>{
-        const sep=(c==="T-Soft Ürün Kodu"||c==="Aide Ürün Adı")?' sepL':'';
+        // ✅ istenen: Marka ile Compel Ürün Kodu arasına sepL -> Compel Ürün Kodu sütununda sepL
+        const sep=(c==="Compel Ürün Kodu"||c==="T-Soft Ürün Kodu"||c==="Aide Ürün Adı")?' sepL':'';
         return `<th class="${sep.trim()}" title="${esc(c)}"><span class="hTxt">${fmtHdr(c)}</span></th>`
       }).join('');
 
@@ -230,10 +240,13 @@ export function createRenderer({ui}={}){
         return `<tr id="u_${i}">
           <td class="seqCell" title="${esc(seq)}"><span class="cellTxt">${esc(seq)}</span></td>
           <td title="${esc(brand)}"><span class="cellTxt">${esc(brand)}</span></td>
-          <td class="tightCol" title="${esc(cCode)}">${compelCodeCell}</td>
+
+          <td class="tightCol sepL" title="${esc(cCode)}">${compelCodeCell}</td>
           <td class="left nameCell">${compelNameCell}</td>
+
           <td class="tightCol sepL" title="${esc(tCode)}">${tsoftCodeCell}</td>
           <td class="left nameCell">${tsoftNameCell}</td>
+
           <td class="left sepL">${aideCell}</td>
         </tr>`
       }).join('');
