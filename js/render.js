@@ -26,11 +26,15 @@ th.hdrThin{font-weight:700!important}
 th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
 #t1 thead th,#t2 thead th{position:sticky!important;top:var(--theadTop,0px)!important;z-index:120!important;background:#1b1b1b!important;box-shadow:0 1px 0 rgba(31,36,48,.9)}
 
-/* ✅ UYARI HALO: Eşleştir/Stok Aç yazısı da aynı etkiyi alsın */
+/* ✅ Eşleştir veya Stok Aç için: kontur + halo (td.flagBad zaten index.html'de var) */
 .warnHalo{
   text-shadow:
-    0 0 2px var(--warn-halo-2, rgba(245,245,245,.20)),
-    0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
+    -0.8px 0 #000,
+     0.8px 0 #000,
+     0 -0.8px #000,
+     0  0.8px #000,
+     0 0 2px var(--warn-halo-2, rgba(245,245,245,.20)),
+     0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
 }
 `;
   document.head.appendChild(st)
@@ -122,7 +126,7 @@ export function createRenderer({ui}={}){
         const hasMatch = !!r?._m;
         const txt = (v??'').toString().trim();
         if(!hasMatch || !txt){
-          // ✅ İSTENEN: renk #ff3064 + halo (warnHalo)
+          // ✅ renk #ff3064 + kontur + halo
           return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm warnHalo" style="color:var(--warn);font-weight:1200">Eşleştir veya Stok Aç</span></td>`;
         }
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
@@ -157,7 +161,6 @@ export function createRenderer({ui}={}){
         const aNm=r["Aide Ürün Adı"]??r["Depo Ürün Adı"]??'',aPulse=!!r._pulseD;
 
         const cNum=stockToNumber(r._cstokraw??'',{source:'compel'});
-        // ✅ stok varsa (Stok: 1) yerine (Stok Var)
         const cTag=cNm?(cNum<=0?'(Stok Yok)':'(Stok Var)'):'';
 
         const tAct=r._taktif,tStock=Number(r._tstok??0);
