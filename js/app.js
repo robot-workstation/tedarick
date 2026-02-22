@@ -107,7 +107,7 @@ const applySupplierUi=()=>{
   updateGuideUI()
 };
 
-/* ✅ META'DAN SAAT ÇEKME (Aide için) */
+/* ✅ META'DAN SAAT ÇEKME (Aide/Tsoft için) */
 function pickHMFrom(obj){
   if(!obj) return '';
   const direct = String(obj.hm||obj.HM||obj.time||obj.saat||obj.hour||obj.hhmm||'').trim();
@@ -133,7 +133,6 @@ function pickDateFrom(obj){
 
 /* ✅ Aide için: bugün varsa "Bugün HH:MM Tarihli Veri", yoksa dünkü "<tarih> Tarihli Veri" */
 function getAideDailyPick(){
-  // Today adayları (meta farklı gelebilir diye geniş)
   const todayAide =
     DAILY_META?.today?.aide ||
     DAILY_META?.aide?.today ||
@@ -159,7 +158,38 @@ function getAideDailyPick(){
     return { exists:true, isToday:true, ymd:todayDate.ymd, dmy:todayDate.dmy, hm };
   }
   if(yestExists){
-    // dünkü Aide verisi: saat değil tarih yazacağız
+    return { exists:true, isToday:false, ymd:yestDate.ymd, dmy:yestDate.dmy, hm:'' };
+  }
+  return { exists:false, isToday:false, ymd:'', dmy:'', hm:'' };
+}
+
+/* ✅ T-Soft için: Aide ile aynı mantık */
+function getTsoftDailyPick(){
+  const todayTsoft =
+    DAILY_META?.today?.tsoft ||
+    DAILY_META?.tsoft?.today ||
+    DAILY_META?.todayTsoft ||
+    DAILY_META?.tsoftToday ||
+    null;
+
+  const yesterdayTsoft =
+    DAILY_META?.yesterday?.tsoft ||
+    DAILY_META?.tsoft?.yesterday ||
+    DAILY_META?.yesterdayTsoft ||
+    DAILY_META?.tsoftYesterday ||
+    null;
+
+  const todayExists = !!(todayTsoft?.exists || DAILY_META?.today?.tsoftExists || DAILY_META?.today?.tsoft?.exists);
+  const yestExists  = !!(yesterdayTsoft?.exists || DAILY_META?.yesterday?.tsoftExists || DAILY_META?.yesterday?.tsoft?.exists);
+
+  const todayDate = pickDateFrom(DAILY_META?.today);
+  const yestDate  = pickDateFrom(DAILY_META?.yesterday);
+
+  if(todayExists){
+    const hm = pickHMFrom(todayTsoft) || pickHMFrom(DAILY_META?.today) || '';
+    return { exists:true, isToday:true, ymd:todayDate.ymd, dmy:todayDate.dmy, hm };
+  }
+  if(yestExists){
     return { exists:true, isToday:false, ymd:yestDate.ymd, dmy:yestDate.dmy, hm:'' };
   }
   return { exists:false, isToday:false, ymd:'', dmy:'', hm:'' };
@@ -173,29 +203,29 @@ function paintDailyUI(){
   const tBtn=$('tsoftDailyBtn'),aBtn=$('aideDailyBtn');
   const tPrev=$('tsoftPrev'),aPrev=$('aidePrev');
 
-  const yYmd=String(DAILY_META?.yesterday?.ymd||'').trim();
-  const yDmy=String(DAILY_META?.yesterday?.dmy||'').trim();
-
-  // T-Soft yesterday meta (mevcut davranış: dünkü veri)
-  const tExists = !!(DAILY_META?.yesterday?.tsoft?.exists);
-  const tDateLabel = (yDmy ? `${yDmy} Tarihli Veri` : '—');
-  const tSel = !!(DAILY_SELECTED.tsoft && DAILY_SELECTED.tsoft===yYmd);
+  // ✅ T-Soft pick artık today varsa today, yoksa yesterday
+  const tPick = getTsoftDailyPick();
+  const tLabel = tPick.exists
+    ? (tPick.isToday
+        ? (tPick.hm ? `Bugün ${tPick.hm} Tarihli Veri` : 'Bugün — Tarihli Veri')
+        : (tPick.dmy ? `${tPick.dmy} Tarihli Veri` : '—'))
+    : '—';
+  const tSel = !!(tPick.ymd && DAILY_SELECTED.tsoft && DAILY_SELECTED.tsoft===tPick.ymd);
 
   if(tBtn){
-    tBtn.disabled=!tExists;
-    tBtn.title=tExists?tDateLabel:'—';
-    tBtn.textContent=tSel?'Seçildi':tDateLabel;
+    tBtn.disabled=!tPick.exists;
+    tBtn.title=tPick.exists?tLabel:'—';
+    tBtn.textContent=tSel?'Seçildi':tLabel;
     setBtnSel(tBtn,tSel);
   }
 
-  // ✅ Aide pick: bugün varsa "Bugün HH:MM...", yoksa dünkü "<tarih>..."
+  // ✅ Aide pick (mevcut)
   const aidePick = getAideDailyPick();
   const aLabel = aidePick.exists
     ? (aidePick.isToday
         ? (aidePick.hm ? `Bugün ${aidePick.hm} Tarihli Veri` : 'Bugün — Tarihli Veri')
         : (aidePick.dmy ? `${aidePick.dmy} Tarihli Veri` : '—'))
     : '—';
-
   const aSel = !!(aidePick.ymd && DAILY_SELECTED.aide && DAILY_SELECTED.aide===aidePick.ymd);
 
   if(aBtn){
@@ -222,12 +252,14 @@ function closeModalByButton(btnId){
 }
 
 function toggleDaily(kind){
-  const ymd=String(DAILY_META?.yesterday?.ymd||'').trim();
   if(kind==='tsoft'){
-    if(!ymd){ return; }
-    const was = (DAILY_SELECTED.tsoft===ymd);
-    DAILY_SELECTED.tsoft = was ? '' : ymd;
+    const pick = getTsoftDailyPick();
+    if(!pick?.exists || !pick?.ymd){ return; }
+
+    const was = (DAILY_SELECTED.tsoft===pick.ymd);
+    DAILY_SELECTED.tsoft = was ? '' : pick.ymd;
     paintDailyUI();
+
     if(!was){
       closeModalByButton('tsoftDismiss');
       if(!hasEverListed && SELECTED.size>0) setGuideStep('aide');
@@ -241,6 +273,7 @@ function toggleDaily(kind){
     const was = (DAILY_SELECTED.aide===pick.ymd);
     DAILY_SELECTED.aide = was ? '' : pick.ymd;
     paintDailyUI();
+
     if(!was){
       closeModalByButton('depoClose');
       if(!hasEverListed && SELECTED.size>0) setGuideStep('list');
