@@ -44,6 +44,21 @@ th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
 th.tightCol,td.tightCol{padding-left:4px!important;padding-right:4px!important}
 td.eanCell{white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
 td.eanCell .cellTxt{white-space:nowrap!important}
+
+/* ✅ ALT TABLO: belirli sütunlar içeriği kadar daralsın ve TAMAMI görünsün */
+#t2{table-layout:auto!important}
+#t2 th.fitCol,#t2 td.fitCol{
+  width:1%!important;             /* mümkün olduğunca dar */
+  white-space:nowrap!important;    /* alta indirme yok */
+  overflow:visible!important;      /* kesme yok */
+  text-overflow:clip!important;    /* ... yok */
+}
+#t2 th.fitCol .hTxt,#t2 td.fitCol .cellTxt{
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  max-width:none!important;
+}
 `;
   document.head.appendChild(st)
 }
@@ -118,7 +133,6 @@ export function createRenderer({ui}={}){
     const normS=s=>String(s??'').trim();
     const cmpTR=(a,b)=>normS(a).localeCompare(normS(b),'tr',{sensitivity:'base'});
     const wCompel=r=>{
-      // stok yok -> 1 (alta), stok var -> 0 (üste)
       const n=stockToNumber(r?._s1raw??'',{source:'compel'});
       return n>0?0:1
     };
@@ -178,7 +192,6 @@ export function createRenderer({ui}={}){
     else{
       sec&&(sec.style.display='');
 
-      // ✅ ALT TABLO: istenen sütunlar + separasyon
       const UCOLS=[
         "Sıra",
         "Marka",
@@ -189,12 +202,26 @@ export function createRenderer({ui}={}){
         "Aide Ürün Adı"
       ];
 
-      const W2=[6,12,11,23,11,22,15];
+      // ✅ Burada artık yüzde genişlik vermiyoruz; #t2 table-layout:auto ile içerik kadar daralacak.
+      // İsterseniz yine de bir colgroup kalsın diye sadece "fit" sütunlarına 1% veriyoruz:
+      const col2=`
+        <colgroup>
+          <col style="width:1%">
+          <col style="width:1%">
+          <col style="width:1%">
+          <col>
+          <col style="width:1%">
+          <col>
+          <col>
+        </colgroup>
+      `;
+
+      const FIT=new Set(["Sıra","Marka","Compel Ürün Kodu","T-Soft Ürün Kodu"]);
 
       const head2=UCOLS.map(c=>{
-        // ✅ istenen: Marka ile Compel Ürün Kodu arasına sepL -> Compel Ürün Kodu sütununda sepL
         const sep=(c==="Compel Ürün Kodu"||c==="T-Soft Ürün Kodu"||c==="Aide Ürün Adı")?' sepL':'';
-        return `<th class="${sep.trim()}" title="${esc(c)}"><span class="hTxt">${fmtHdr(c)}</span></th>`
+        const fit=FIT.has(c)?' fitCol':'';
+        return `<th class="${(sep+fit).trim()}" title="${esc(c)}"><span class="hTxt">${fmtHdr(c)}</span></th>`
       }).join('');
 
       const body2=U.map((r,i)=>{
@@ -238,20 +265,20 @@ export function createRenderer({ui}={}){
         const tsoftCodeCell=tCode ? `<span class="cellTxt" title="${esc(tCode)}">${esc(tCode)}</span>` : `<span class="cellTxt">—</span>`;
 
         return `<tr id="u_${i}">
-          <td class="seqCell" title="${esc(seq)}"><span class="cellTxt">${esc(seq)}</span></td>
-          <td title="${esc(brand)}"><span class="cellTxt">${esc(brand)}</span></td>
+          <td class="seqCell fitCol" title="${esc(seq)}"><span class="cellTxt">${esc(seq)}</span></td>
+          <td class="fitCol" title="${esc(brand)}"><span class="cellTxt">${esc(brand)}</span></td>
 
-          <td class="tightCol sepL" title="${esc(cCode)}">${compelCodeCell}</td>
+          <td class="fitCol sepL" title="${esc(cCode)}">${compelCodeCell}</td>
           <td class="left nameCell">${compelNameCell}</td>
 
-          <td class="tightCol sepL" title="${esc(tCode)}">${tsoftCodeCell}</td>
+          <td class="fitCol sepL" title="${esc(tCode)}">${tsoftCodeCell}</td>
           <td class="left nameCell">${tsoftNameCell}</td>
 
           <td class="left sepL">${aideCell}</td>
         </tr>`
       }).join('');
 
-      $('t2').innerHTML=colGrp(W2)+`<thead><tr>${head2}</tr></thead><tbody>${body2}</tbody>`
+      $('t2').innerHTML=col2+`<thead><tr>${head2}</tr></thead><tbody>${body2}</tbody>`
     }
 
     const matched=(R||[]).filter(x=>x._m).length;
