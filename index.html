@@ -42,6 +42,10 @@
 
   /* ✅ tablo başlık arkaplanı */
   --thead-bg:#1b1b1b;
+
+  /* ✅ uyarı yazıları için açık gri halo (arka plana göre biraz belirgin) */
+  --warn-halo-1:rgba(245,245,245,.38);
+  --warn-halo-2:rgba(245,245,245,.20);
 }
 
 html,body{min-height:100%;overflow-x:hidden}
@@ -160,11 +164,13 @@ td.eanCell{overflow:visible;text-overflow:clip}
 td.seqCell{font-weight:1100}
 td.statusBold{font-weight:1100}
 
-/* ✅ uyarılar: pembe temada kaybolmasın diye hafif açık gri halo */
+/* ✅ uyarılar: pembe temada kaybolmasın diye hafif açık gri halo (biraz daha belirgin) */
 td.flagBad{color:var(--bad)!important;font-weight:1200!important}
 td.flagBad .cellTxt,
 td.flagBad .nm{
-  text-shadow:0 0 6px rgba(220,220,220,.22);
+  text-shadow:
+    0 0 2px var(--warn-halo-2),
+    0 0 10px var(--warn-halo-1);
 }
 
 a{color:var(--link);text-decoration:none}
