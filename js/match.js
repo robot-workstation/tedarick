@@ -1,205 +1,251 @@
-import { esc,stockToNumber } from './utils.js';
-import { COLS } from './match.js';
+import { TR,T,D,nowISO,inStock } from './utils.js';
 const $=id=>document.getElementById(id);
-const colGrp=w=>`<colgroup>${w.map(x=>`<col style="width:${x}%">`).join('')}</colgroup>`;
 
-const HDR1={
-  "Sıra No":"Sıra","Marka":"Marka",
-  "Ürün Kodu (Compel)":"Compel Ürün Kodu","Ürün Adı (Compel)":"Compel Ürün Adı",
-  "Ürün Kodu (T-Soft)":"T-Soft Ürün Kodu","Ürün Adı (T-Soft)":"Tsoft Ürün Adı",
-  "Stok (Compel)":"Compel","Stok (Depo)":"Aide","Stok (T-Soft)":"T-Soft",
-  "EAN (Compel)":"Compel EAN","EAN (T-Soft)":"T-Soft EAN"
+export const COLS=[
+  "Sıra No","Marka",
+  "Ürün Kodu (Compel)","Ürün Adı (Compel)",
+  "Ürün Kodu (T-Soft)","Ürün Adı (T-Soft)",
+  "Stok (Compel)","Stok (Depo)","Stok (T-Soft)",
+  "EAN (Compel)","EAN (T-Soft)"
+];
+
+const bRaw=s=>{
+  let x=(s??'').toString().replace(/\u00A0/g,' ').trim();if(!x)return '';
+  try{x=x.normalize('NFKD').replace(/[\u0300-\u036f]/g,'')}catch{}
+  x=x.replace(/Ø/g,'O').replace(/ø/g,'o').toLocaleUpperCase(TR)
+    .replace(/\u0130/g,'I').replace(/\u0131/g,'I')
+    .replace(/Ğ/g,'G').replace(/Ü/g,'U').replace(/Ş/g,'S').replace(/Ö/g,'O').replace(/Ç/g,'C')
+    .replace(/&/g,' ').replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+  return x
 };
-const disp=c=>HDR1[c]||c;
-const fmtHdr=s=>{s=(s??'').toString();const m=s.match(/^(.*?)(\s*\([^)]*\))\s*$/);return m?`<span class="hMain">${esc(m[1].trimEnd())}</span> <span class="hParen">${esc(m[2].trim())}</span>`:esc(s)};
+const compact=k=>(k??'').toString().replace(/\s+/g,'');
+const ALIAS=new Map([
+  ['RODE','RODE'],['RODEX','RODE'],
+  ['DENON','DENON DJ'],['DENONDJ','DENON DJ'],
+  ['FENDER','FENDER STUDIO'],['FENDERSTUDIO','FENDER STUDIO'],
+  ['UNIVERSAL','UNIVERSAL AUDIO'],['UNIVERSALAUDIO','UNIVERSAL AUDIO'],
+  ['WARMAUDIO','WARM AUDIO'],
+  ['BEYER','BEYERDYNAMIC'],['BEYERDYNAMIC','BEYERDYNAMIC'],
+  ['ALLENHEATH','ALLEN HEATH'],
+  ['MARANTZPROFESSIONAL','MARANTZ'],
+  ['RUPERTNEVEDESIGNS','RUPERT NEVE'],
+]);
+const B=s=>{const k=bRaw(s);return k?(ALIAS.get(compact(k))||k):''};
+const Bx=s=>bRaw(s);
+export const normBrand=B;
 
-let _css=false;
-function css(){
-  if(_css)return;_css=true;
-  const st=document.createElement('style');
-  st.textContent=`
-@keyframes namePulse{0%{text-shadow:0 0 0 rgba(134,239,172,0)}55%{text-shadow:0 0 14px rgba(134,239,172,.75)}100%{text-shadow:0 0 0 rgba(134,239,172,0)}}
-.namePulse{animation:namePulse 1000ms ease-in-out infinite;will-change:text-shadow}
-.tagFlex{display:flex;gap:10px;align-items:center;justify-content:space-between}
-.tagLeft{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tagRight{flex:0 0 auto;text-align:right;white-space:nowrap;opacity:.92;font-weight:1100}
-.tagLeft .nm,.tagLeft .cellTxt{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sepL{border-left:1px solid rgba(232,60,97,.28)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
-#listTitle,#unmatchedTitle{font-weight:1300!important;font-size:20px!important;letter-spacing:.02em}
-#t1 thead th .hTxt,#t2 thead th .hTxt{display:inline-block;transform-origin:left center}
-th.hdrThin{font-weight:700!important}
-th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
-#t1 thead th,#t2 thead th{position:sticky!important;top:var(--theadTop,0px)!important;z-index:120!important;background:#1b1b1b!important;box-shadow:0 1px 0 rgba(31,36,48,.9)}
-.warnHalo{
-  text-shadow:
-    -0.8px 0 #000,
-     0.8px 0 #000,
-     0 -0.8px #000,
-     0  0.8px #000,
-     0 0 2px var(--warn-halo-2, rgba(245,245,245,.20)),
-     0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
-}
-th.tightCol,td.tightCol{padding-left:4px!important;padding-right:4px!important}
-td.eanCell{white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
-td.eanCell .cellTxt{white-space:nowrap!important}
-`;
-  document.head.appendChild(st)
-}
-css();
-
-const cellName=(txt,href,pulse=false)=>{
-  const v=(txt??'').toString(),u=href||'',cls=`nm${pulse?' namePulse':''}`;
-  return u?`<a class="${cls}" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(v)}">${esc(v)}</a>`:`<span class="${cls}" title="${esc(v)}">${esc(v)}</span>`
+const parseAktif=v=>{
+  const s=(v??'').toString().trim().toLowerCase();if(!s)return null;
+  if(s==='true'||s==='1'||s==='yes'||s==='evet')return true;
+  if(s==='false'||s==='0'||s==='no'||s==='hayir'||s==='hayır')return false;
+  return null
 };
 
-let _raf=0,_bound=false;
-const sched=()=>{_raf&&cancelAnimationFrame(_raf);_raf=requestAnimationFrame(adjust)};
-const firstEl=td=>td?.querySelector('.cellTxt,.nm,input,button,select,div')||null;
+const safeUrl=u=>{u=T(u);return(!u||/^\s*javascript:/i.test(u))?'':u};
+const SEO='https://www.sescibaba.com/';
+const normSeo=raw=>{
+  let u=T(raw);
+  if(!u||/^\s*javascript:/i.test(u))return '';
+  if(/^https?:\/\//i.test(u))return u;
+  if(/^www\./i.test(u))return 'https://'+u;
+  if(/^sescibaba\.com/i.test(u))return 'https://'+u;
+  return SEO+u.replace(/^\/+/,'');
+};
 
-function enforceSticky(){
-  document.querySelectorAll('.tableWrap').forEach(w=>{w.style.overflow='visible';w.style.overflowX='visible';w.style.overflowY='visible'});
-  document.documentElement.style.setProperty('--theadTop','0px')
-}
-function fitHeader(tableId){
-  const t=$(tableId);if(!t)return;
-  t.querySelectorAll('thead th').forEach(th=>{
-    const sp=th.querySelector('.hTxt');if(!sp)return;
-    sp.style.transform='scaleX(1)';
-    const avail=Math.max(10,th.clientWidth-2),need=sp.scrollWidth||0,s=need>avail?(avail/need):1;
-    sp.style.transform=`scaleX(${s})`
-  })
-}
-function adjust(){
-  _raf=0;enforceSticky();fitHeader('t1');fitHeader('t2');
-  const nameFit=tableId=>{
-    const t=$(tableId);if(!t)return;
-    const rows=t.querySelectorAll('tbody tr'),G=6;
-    for(const tr of rows){
-      const tds=tr.querySelectorAll('td.nameCell');if(!tds.length)continue;
-      for(let i=tds.length-1;i>=0;i--){
-        const td=tds[i],nm=td.querySelector('.nm');if(!nm)continue;
-        const next=td.nextElementSibling,tdR=td.getBoundingClientRect(),nmR=nm.getBoundingClientRect();
-        let maxRight=tdR.right-G;
-        if(next){
-          const el=firstEl(next);
-          if(el){const r=el.getBoundingClientRect();maxRight=Math.min(tdR.right+next.getBoundingClientRect().width,r.left-G)}
-          else maxRight=next.getBoundingClientRect().right-G
-        }
-        nm.style.maxWidth=Math.max(40,maxRight-nmR.left)+'px'
-      }
+const eans=v=>{
+  v=(v??'').toString().trim();if(!v)return [];
+  return v.split(/[^0-9]+/g).map(D).filter(x=>x.length>=8)
+};
+const eanAlt1=x=>{
+  x=D(x||'');if(!x)return '';
+  if(x.startsWith('0')&&x.length>1)return x.slice(1);
+  return ''
+};
+
+export function createMatcher({getDepotAgg,isDepotReady}={}){
+  let L1=[],L2=[],L2all=[],C1={},C2={};
+  let map={meta:{version:1,createdAt:nowISO(),updatedAt:nowISO()},mappings:{}};
+  let idxB=new Map(),idxW=new Map(),idxS=new Map();
+  let R=[],U=[],UT=[];
+
+  const key=(r,fn)=>{
+    const b=fn(r[C1.marka]||''),code=T(r[C1.urunKodu]||''),name=T(r[C1.urunAdi]||'');
+    return b+'||'+(code||('NAME:'+name))
+  };
+  const kNew=r=>key(r,B),kOld=r=>key(r,Bx);
+
+  const buildIdx=()=>{
+    idxB=new Map();idxW=new Map();idxS=new Map();
+    for(const r of L2){
+      const bark=D(r[C2.barkod]||''),ws=T(r[C2.ws]||''),sup=T(r[C2.sup]||'');
+      if(bark){idxB.has(bark)||idxB.set(bark,[]);idxB.get(bark).push(r)}
+      ws&&idxW.set(ws,r);sup&&idxS.set(sup,r)
+    }
+    const wsDl=$('wsCodes'),supDl=$('supCodes');
+    wsDl&&(wsDl.innerHTML='');supDl&&(supDl.innerHTML='')
+  };
+
+  const byEan=r1=>{
+    const br1=B(r1[C1.marka]||'');
+    for(const e0 of eans(r1[C1.ean]||'')){
+      let arr=idxB.get(e0);
+      if((!arr||!arr.length)&&e0.startsWith('0')){const e1=e0.slice(1);arr=idxB.get(e1)||arr}
+      if(arr?.length)return arr.find(r2=>B(r2[C2.marka]||'')===br1)||arr[0]
+    }
+    return null
+  };
+
+  const byCompelCodeWs=r1=>{
+    const code=T(r1[C1.urunKodu]||'');if(!code)return null;
+    const r2=idxW.get(code)||null;if(!r2)return null;
+    const b1=B(r1[C1.marka]||''),b2=B(r2[C2.marka]||'');
+    if(b1&&b2&&b1!==b2)return null;
+    return r2
+  };
+
+  const byMap=r1=>{
+    const m=map.mappings||{},ent=m[kNew(r1)]??m[kOld(r1)];
+    if(!ent)return null;
+    if(typeof ent==='string')return idxW.get(ent)||idxS.get(ent)||null;
+    const ws=T(ent.webServisKodu||ent.ws||''),sup=T(ent.tedarikciUrunKodu||ent.supplier||'');
+    return (ws&&idxW.get(ws))||(sup&&idxS.get(sup))||null
+  };
+
+  const compelLbl=raw=>{
+    const s=(raw??'').toString().trim();if(!s)return '';
+    return inStock(s,{source:'compel'})?'Stokta Var':'Stokta Yok'
+  };
+  const tsoftLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Stokta Var':'Stokta Yok'):'';
+  const depoLbl=dNum=>!isDepotReady?.()?'—':(dNum>0?'Stokta Var':'Stokta Yok');
+
+  const stokDurFlag=(compelRaw,tsoftRaw,dNum,ok)=>{
+    if(!ok)return null;
+    const a=inStock(compelRaw,{source:'compel'}),b=inStock(tsoftRaw,{source:'products'});
+    const exp=isDepotReady?.()?(a||(dNum>0)):a;
+    return b===exp?false:true
+  };
+
+  // ✅ kural: Compel EAN yoksa T-Soft EAN kırmızı olmasın
+  // return: true(=eşleşti) / false(=eşleşmedi) / null(=compel ean yok -> işaretleme yok)
+  const eanMatch=(aRaw,bRaw2,ok)=>{
+    if(!ok)return null;
+
+    const aList=eans(aRaw||'');
+    if(!aList.length) return null; // Compel EAN yok -> uyarı yok
+
+    const a=new Set();
+    for(const x of aList){a.add(x);const alt=eanAlt1(x);alt&&a.add(alt)}
+
+    const b=eans(bRaw2||'');
+    if(!b.length) return false;
+
+    for(const x of b){if(a.has(x)||a.has('0'+x))return true}
+    return false
+  };
+
+  const outRow=(r1,r2,how)=>{
+    const s1raw=T(r1[C1.stok]||''),s2raw=r2?T(r2[C2.stok]||''):'';
+    const sup=r2?T(r2[C2.sup]||''):'',bark=r2?T(r2[C2.barkod]||''):'';
+    const seoAbs=r2?safeUrl(normSeo(r2[C2.seo]||'')):'',clink=safeUrl(r1[C1.link]||'');
+    const depAgg=getDepotAgg?.();
+    const d=(r2&&depAgg)?depAgg(sup):{num:0,raw:''};
+
+    const em=eanMatch(r1[C1.ean]||'',bark,!!r2);
+    const stokBad=stokDurFlag(s1raw,s2raw,d.num,!!r2);
+
+    return{
+      "Sıra No":T(r1[C1.siraNo]||''),"Marka":T(r1[C1.marka]||''),
+      "Ürün Adı (Compel)":T(r1[C1.urunAdi]||''),
+      "Ürün Adı (T-Soft)":r2?T(r2[C2.urunAdi]||''):'',
+      "Ürün Kodu (Compel)":T(r1[C1.urunKodu]||''),
+      "Ürün Kodu (T-Soft)":sup,
+      "Stok (Compel)":compelLbl(s1raw),
+      "Stok (Depo)":r2?depoLbl(d.num):(isDepotReady?.()?'Stokta Yok':'—'),
+      "Stok (T-Soft)":tsoftLbl(s2raw,!!r2),
+      "EAN (Compel)":T(r1[C1.ean]||''),"EAN (T-Soft)":bark,
+
+      _s1raw:s1raw,_s2raw:s2raw,_dnum:d.num,_draw:d.raw,
+      _m:!!r2,_how:r2?how:'',_k:kNew(r1),_bn:B(r1[C1.marka]||''),_seo:seoAbs,_clink:clink,
+
+      _eanMatch:em,
+      _eanBad:(em===false),     // ✅ sadece em===false iken (compel ean varsa)
+      _stokBad:(stokBad===true)
     }
   };
-  nameFit('t1');nameFit('t2');
-  if(!_bound){_bound=true;addEventListener('resize',sched)}
-}
 
-const fmtNum=n=>{const x=Number(n);return Number.isFinite(x)?(Math.round(x)===x?String(x):String(x)):'0'};
+  const runMatch=()=>{
+    buildIdx();R=[];U=[];UT=[];
+    const matchedTsoftKeys=new Set();
+    const markMatchedTsoft=r2=>{
+      if(!r2)return;
+      const brN=B(r2[C2.marka]||'');if(!brN)return;
+      const ws=T(r2[C2.ws]||''),sup=T(r2[C2.sup]||'');
+      ws&&matchedTsoftKeys.add(`${brN}||WS:${ws}`);
+      sup&&matchedTsoftKeys.add(`${brN}||SUP:${sup}`);
+    };
 
-export function createRenderer({ui}={}){
-  return{render(R,Ux,depotReady){
-    const T1_SEP_LEFT=new Set(["Ürün Kodu (Compel)","Ürün Kodu (T-Soft)","Stok (Compel)","EAN (Compel)"]);
-    const tight=c=>(c==="Ürün Kodu (Compel)"||c==="Ürün Kodu (T-Soft)");
-    const NARROW_ONLY=new Set(["Sıra No","Marka","Ürün Kodu (Compel)","Ürün Kodu (T-Soft)"]);
-    const W1=[3,5,6,22,6,22,7,7,7,7,8];
-
-    const head=COLS.map(c=>{
-      const l=disp(c);
-      const cls=[
-        T1_SEP_LEFT.has(c)?'sepL':'',
-        tight(c)?'hdrThin hdrTight':'',
-        NARROW_ONLY.has(c)?'tightCol':''
-      ].filter(Boolean).join(' ');
-      return `<th class="${cls}" title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`
-    }).join('');
-
-    // ✅ Üst tablo sadece eşleşenleri gösterir
-    // Alfabetik: Marka > Compel Ürün Adı > Compel Ürün Kodu > T-Soft Ürün Adı (stabil)
-    const normS=s=>String(s??'').trim();
-    const cmpTR=(a,b)=>normS(a).localeCompare(normS(b),'tr',{sensitivity:'base'});
-    const Rview=(R||[])
-      .filter(r=>!!r?._m)
-      .map((row,idx)=>({row,idx}))
-      .sort((A,B)=>{
-        const a=A.row,b=B.row;
-        const ab=cmpTR(a?.["Marka"],b?.["Marka"]); if(ab) return ab;
-        const an=cmpTR(a?.["Ürün Adı (Compel)"],b?.["Ürün Adı (Compel)"]); if(an) return an;
-        const ac=cmpTR(a?.["Ürün Kodu (Compel)"],b?.["Ürün Kodu (Compel)"]); if(ac) return ac;
-        const tn=cmpTR(a?.["Ürün Adı (T-Soft)"],b?.["Ürün Adı (T-Soft)"]); if(tn) return tn;
-        return A.idx-B.idx;
-      })
-      .map(x=>x.row);
-
-    const body=(Rview||[]).map((r,rowIdx)=>`<tr>${COLS.map((c,idx)=>{
-      let v=r[c]??'';
-      if(c==="Sıra No") v=String(rowIdx+1);
-
-      if(c==="Ürün Adı (Compel)")return `<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
-      if(c==="Ürün Adı (T-Soft)"){
-        const txt=(v??'').toString().trim();
-        return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
-      }
-
-      const seq=idx===0;
-      const ean=(c==="EAN (Compel)"||c==="EAN (T-Soft)");
-      const eanBad=(c==="EAN (T-Soft)"&&r?._eanBad===true);
-      const stokBad=(c==="Stok (T-Soft)"&&r?._stokBad===true);
-      const bad=eanBad||stokBad;
-
-      const cls=[
-        T1_SEP_LEFT.has(c)?'sepL':'',
-        seq?'seqCell':'',
-        ean?'eanCell':'',
-        bad?'flagBad':'',
-        NARROW_ONLY.has(c)?'tightCol':''
-      ].filter(Boolean).join(' ');
-
-      const title=(c==="Stok (Depo)"&&depotReady)?`${v} (Depo Toplam: ${r._draw??'0'})`:v;
-      return `<td class="${cls}" title="${esc(title)}"><span class="cellTxt">${esc(v)}</span></td>`
-    }).join('')}</tr>`).join('');
-
-    $('t1').innerHTML=colGrp(W1)+`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
-
-    const sec=$('unmatchedSection'),ut=$('unmatchedTitle');
-    ut&&(ut.textContent='Compel, T-Soft ve Aide Eşleşmeyen Ürünler Listesi');
-    const U=Array.isArray(Ux)?Ux:[];
-    if(!U.length){sec&&(sec.style.display='none')}
-    else{
-      sec&&(sec.style.display='');
-      const UCOLS=["Sıra","Marka","Compel Ürün Adı","T-Soft Ürün Adı","Aide Ürün Adı"],W2=[6,12,26,28,28];
-
-      const head2=UCOLS.map(c=>{
-        const sep=(c==="T-Soft Ürün Adı"||c==="Aide Ürün Adı")?' sepL':'';
-        return `<th class="${sep.trim()}" title="${esc(c)}"><span class="hTxt">${fmtHdr(c)}</span></th>`
-      }).join('');
-
-      const body2=U.map((r,i)=>{
-        const seq=r["Sıra"]??String(i+1),brand=r["Marka"]??'';
-        const cNm=r["Compel Ürün Adı"]??'',cLn=r._clink||'',cPulse=!!r._pulseC;
-        const tNm=r["T-Soft Ürün Adı"]??'',tLn=r._seo||'';
-        const aNm=r["Aide Ürün Adı"]??r["Depo Ürün Adı"]??'',aPulse=!!r._pulseD;
-
-        const cNum=stockToNumber(r._cstokraw??'',{source:'compel'});
-        const cTag=cNm?(cNum<=0?'(Stok Yok)':'(Stok Var)'):'';
-
-        const tAct=r._taktif,tStock=Number(r._tstok??0);
-        const tTag=tNm?(tAct===true?`(Aktif: ${fmtNum(tStock)} Stok)`:(tAct===false?'(Pasif)':'')):'';
-
-        const aNum=Number(r._dstok??0);
-        const aTag=aNm?(aNum<=0?'(Stok Yok)':`(Stok: ${fmtNum(aNum)})`):'';
-
-        const compel=cNm?`<div class="tagFlex"><span class="tagLeft">${cellName(cNm,cLn,cPulse)}</span><span class="tagRight">${esc(cTag)}</span></div>`:`<span class="cellTxt">—</span>`;
-        const tsoft=tNm?`<div class="tagFlex"><span class="tagLeft">${cellName(tNm,tLn,false)}</span><span class="tagRight">${esc(tTag)}</span></div>`:`<span class="cellTxt">—</span>`;
-        const aide=aNm?`<div class="tagFlex" title="${esc(aNm)}"><span class="cellTxt tagLeft${aPulse?' namePulse':''}">${esc(aNm)}</span><span class="tagRight">${esc(aTag)}</span></div>`:`<span class="cellTxt">—</span>`;
-
-        return `<tr id="u_${i}"><td class="seqCell" title="${esc(seq)}"><span class="cellTxt">${esc(seq)}</span></td><td title="${esc(brand)}"><span class="cellTxt">${esc(brand)}</span></td><td class="left nameCell">${compel}</td><td class="left nameCell sepL">${tsoft}</td><td class="left sepL">${aide}</td></tr>`
-      }).join('');
-
-      $('t2').innerHTML=colGrp(W2)+`<thead><tr>${head2}</tr></thead><tbody>${body2}</tbody>`
+    for(const r1 of L1){
+      let r2=byEan(r1),how=r2?'EAN':'';
+      if(!r2){r2=byCompelCodeWs(r1);if(r2)how='KOD'}
+      if(!r2){r2=byMap(r1);if(r2)how='JSON'}
+      if(r2&&(how==='EAN'||how==='KOD'))markMatchedTsoft(r2);
+      const row=outRow(r1,r2,how);R.push(row);row._m||U.push(row)
     }
 
-    const matched=(R||[]).filter(x=>x._m).length;
-    ui?.setChip?.('sum',`✓${matched} • ✕${(R||[]).length-matched}`,'muted');
-    const dl1=$('dl1');dl1&&(dl1.disabled=!(R||[]).length);
-    enforceSticky();sched()
-  }}
+    const seen=new Set();
+    for(const r2 of L2){
+      const brN=B(r2[C2.marka]||'');if(!brN)continue;
+      const nm=T(r2[C2.urunAdi]||'');if(!nm)continue;
+      const ws=T(r2[C2.ws]||''),sup=T(r2[C2.sup]||'');
+      if((ws&&matchedTsoftKeys.has(`${brN}||WS:${ws}`))||(sup&&matchedTsoftKeys.has(`${brN}||SUP:${sup}`)))continue;
+
+      const k=(brN+'||'+(sup||'—')+'||'+nm).toLocaleLowerCase(TR).replace(/\s+/g,' ').trim();
+      if(!k||seen.has(k))continue;seen.add(k);
+
+      UT.push({
+        _type:'tsoft',_bn:brN,"Marka":T(r2[C2.marka]||'')||brN,"T-Soft Ürün Adı":nm,
+        _seo:safeUrl(normSeo(r2[C2.seo]||'')),_sup:sup,_ws:ws,
+        _aktif:C2.aktif?parseAktif(r2[C2.aktif]):null,
+        _stokraw:C2.stok?T(r2[C2.stok]):''
+      })
+    }
+
+    UT.sort((a,b)=>{
+      const ab=String(a["Marka"]||'').localeCompare(String(b["Marka"]||''),'tr',{sensitivity:'base'});
+      return ab||String(a["T-Soft Ürün Adı"]||'').localeCompare(String(b["T-Soft Ürün Adı"]||''),'tr',{sensitivity:'base'})
+    });
+
+    return {R,U,UT}
+  };
+
+  const manualMatch=(i,ws,sup)=>{
+    const r=U[i];if(!r)return false;
+    const r2=(ws&&idxW.get(ws))||(sup&&idxS.get(sup))||null;
+    if(!r2){alert('Ürün bulunamadı (marka filtresi sebebiyle de olabilir).');return false}
+    const b1=r._bn,b2=B(r2[C2.marka]||'');
+    if(b1&&b2&&b1!==b2&&!confirm(`Marka farklı:\n1) ${b1}\n2) ${b2}\nYine de eşleştirilsin mi?`))return false;
+
+    map.mappings=map.mappings||{};
+    map.mappings[r._k]={webServisKodu:T(r2[C2.ws]||''),tedarikciUrunKodu:T(r2[C2.sup]||''),barkod:T(r2[C2.barkod]||''),updatedAt:nowISO()};
+    map.meta=map.meta||{};map.meta.updatedAt=nowISO();
+
+    const idx=R.findIndex(x=>x._k===r._k);
+    if(idx>=0){
+      const stub={[C1.siraNo]:r["Sıra No"],[C1.marka]:r["Marka"],[C1.urunAdi]:r["Ürün Adı (Compel)"],[C1.urunKodu]:r["Ürün Kodu (Compel)"],[C1.stok]:r._s1raw||'',[C1.ean]:r["EAN (Compel)"],[C1.link]:r._clink||''};
+      R[idx]=outRow(stub,r2,'MANUAL');R[idx]._k=r._k;R[idx]._bn=b1
+    }
+    U.splice(i,1);return true
+  };
+
+  const resetAll=()=>{
+    L1=[];L2=[];L2all=[];C1={};C2={};
+    idxB=new Map();idxW=new Map();idxS=new Map();
+    R=[];U=[];UT=[];map={meta:{version:1,createdAt:nowISO(),updatedAt:nowISO()},mappings:{}}
+  };
+
+  const loadData=({l1,c1,l2,c2,l2All})=>{L1=l1||[];L2=l2||[];L2all=l2All||[];C1=c1||{};C2=c2||{}};
+  const getResults=()=>({R,U,UT});
+  const hasData=()=>!!(L1?.length&&L2?.length);
+
+  return{resetAll,loadData,runMatch,manualMatch,getResults,hasData}
 }
