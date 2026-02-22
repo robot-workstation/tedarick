@@ -25,6 +25,13 @@ function css(){
 th.hdrThin{font-weight:700!important}
 th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
 #t1 thead th,#t2 thead th{position:sticky!important;top:var(--theadTop,0px)!important;z-index:120!important;background:#1b1b1b!important;box-shadow:0 1px 0 rgba(31,36,48,.9)}
+
+/* ✅ UYARI HALO: pembe yazılar kaybolmasın (arka plana göre biraz belirgin) */
+.warnHalo{
+  text-shadow:
+    0 0 2px var(--warn-halo-2, rgba(245,245,245,.20)),
+    0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
+}
 `;
   document.head.appendChild(st)
 }
@@ -116,7 +123,7 @@ export function createRenderer({ui}={}){
         const txt = (v??'').toString().trim();
         if(!hasMatch || !txt){
           // ✅ uyarı: hafif açık gri halo (tema içinde kaybolmasın)
-          return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm" style="color:var(--bad);font-weight:1200;text-shadow:0 0 6px rgba(220,220,220,.22)">Eşleştir veya Stok Aç</span></td>`;
+          return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm warnHalo" style="color:var(--bad);font-weight:1200">Eşleştir veya Stok Aç</span></td>`;
         }
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
       }
