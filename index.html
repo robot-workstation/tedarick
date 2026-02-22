@@ -159,7 +159,13 @@ td.nameCell .nm{display:inline-block;white-space:nowrap;overflow:hidden;text-ove
 td.eanCell{overflow:visible;text-overflow:clip}
 td.seqCell{font-weight:1100}
 td.statusBold{font-weight:1100}
+
+/* ✅ uyarılar: pembe temada kaybolmasın diye hafif açık gri halo */
 td.flagBad{color:var(--bad)!important;font-weight:1200!important}
+td.flagBad .cellTxt,
+td.flagBad .nm{
+  text-shadow:0 0 6px rgba(220,220,220,.22);
+}
 
 a{color:var(--link);text-decoration:none}
 a:hover{text-decoration:underline}
@@ -216,18 +222,22 @@ a:hover{text-decoration:underline}
   font-weight:800;font-size:14px
 }
 
-/* ✅ Aide webp: kutunun ortasında (dikey ve yatay) */
+/* ✅ Aidestek.webp:
+   - yatay: eski tasarım gibi sağa kayık (calc(50% + 100px))
+   - dikey: pasteWrap içinde ortalanmış gibi ama optik olarak biraz yukarı alınmış
+*/
 #depoSpin{
   position:absolute;
-  left:50%;
+  left:calc(50% + 100px);
   top:50%;
-  transform:translate(-50%,-50%) scale(1.875);
+  transform:translate(-50%,-55%) scale(1.875);
   width:min(180px,60%);
   opacity:.95;
-  pointer-events:none;
+  pointer-events:auto;
   z-index:2;
   filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));
-  border-radius:6px
+  border-radius:6px;
+  cursor:pointer;
 }
 
 .ctrlStack{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
@@ -351,7 +361,12 @@ a:hover{text-decoration:underline}
 <datalist id="wsCodes"></datalist><datalist id="supCodes"></datalist>
 
 <script type="module">
-(()=>{const b=document.getElementById('tsoftThumb'),i=document.getElementById('tsoftThumbImg'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!b||!i||!o||!oi)return;let t=null;const open=()=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=i.currentSrc||i.src;o.classList.add('show');o.setAttribute('aria-hidden','false')};const close=()=>{o.classList.add('closing');t=setTimeout(()=>{o.classList.remove('show');o.classList.remove('closing');o.setAttribute('aria-hidden','true');oi.removeAttribute('src');t=null},220)};b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});o.addEventListener('click',e=>{e.preventDefault();close()});addEventListener('keydown',e=>{e.key==='Escape'&&o.classList.contains('show')&&close()});const m=document.getElementById('tsoftModal'),d=document.getElementById('tsoftDismiss');m&&d&&d.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();m.style.display='none';m.setAttribute('aria-hidden','true')});})();
+(()=>{const b=document.getElementById('tsoftThumb'),i=document.getElementById('tsoftThumbImg'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!b||!i||!o||!oi)return;let t=null;const open=src=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=src;o.classList.add('show');o.setAttribute('aria-hidden','false')};const close=()=>{o.classList.add('closing');t=setTimeout(()=>{o.classList.remove('show');o.classList.remove('closing');o.setAttribute('aria-hidden','true');oi.removeAttribute('src');t=null},220)};b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open(i.currentSrc||i.src)});o.addEventListener('click',e=>{e.preventDefault();close()});addEventListener('keydown',e=>{e.key==='Escape'&&o.classList.contains('show')&&close()});const m=document.getElementById('tsoftModal'),d=document.getElementById('tsoftDismiss');m&&d&&d.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();m.style.display='none';m.setAttribute('aria-hidden','true')});})();
+</script>
+
+<!-- ✅ Aide webp de tıklayınca aynı overlay ile büyüsün -->
+<script type="module">
+(()=>{const img=document.getElementById('depoSpin'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!img||!o||!oi)return;let t=null;const open=()=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=img.currentSrc||img.src;o.classList.add('show');o.setAttribute('aria-hidden','false')};img.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});})();
 </script>
 
 <script type="module" src="./js/app.js"></script>
