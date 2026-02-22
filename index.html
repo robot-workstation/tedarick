@@ -34,7 +34,7 @@
   /* genel "bad" rengi (chip vb.) */
   --bad:#ff4d79;
 
-  /* ✅ İSTENEN: uyarı yazı rengi (Eşleştir veya Stok Aç / Hatalı / Eşleşmedi) */
+  /* ✅ İSTENEN: uyarı yazı rengi */
   --warn:#ff3064;
 
   --unk:#fcd34d;
@@ -46,9 +46,12 @@
   /* ✅ tablo başlık arkaplanı */
   --thead-bg:#1b1b1b;
 
-  /* ✅ uyarı yazıları için açık gri halo (arka plana göre biraz belirgin) */
+  /* ✅ uyarı yazıları için açık gri halo */
   --warn-halo-1:rgba(245,245,245,.38);
   --warn-halo-2:rgba(245,245,245,.20);
+
+  /* ✅ siyah kontur (text-stroke yoksa çoklu shadow ile) */
+  --stroke:#000;
 }
 
 html,body{min-height:100%;overflow-x:hidden}
@@ -169,11 +172,19 @@ td.statusBold{font-weight:1100}
 
 /* ✅ uyarılar (Hatalı / Eşleşmedi) */
 td.flagBad{color:var(--warn)!important;font-weight:1200!important}
+
+/* halo + siyah kontur */
 td.flagBad .cellTxt,
 td.flagBad .nm{
+  /* kontur: 4 yön shadow */
   text-shadow:
-    0 0 2px var(--warn-halo-2),
-    0 0 10px var(--warn-halo-1);
+    -0.8px 0 var(--stroke),
+     0.8px 0 var(--stroke),
+     0 -0.8px var(--stroke),
+     0  0.8px var(--stroke),
+    /* halo aynı kalsın */
+     0 0 2px var(--warn-halo-2),
+     0 0 10px var(--warn-halo-1);
 }
 
 a{color:var(--link);text-decoration:none}
@@ -203,8 +214,21 @@ a:hover{text-decoration:underline}
 .tsoftFlex{display:flex;gap:12px;align-items:stretch;overflow:visible}
 .tsoftLeft{flex:1 1 auto;min-width:0;overflow:visible}
 .tsoftRight{flex:0 0 230px;max-width:230px;display:flex;justify-content:flex-end;align-items:center;align-self:stretch;margin-left:auto;position:relative;z-index:10}
-.tsoftThumb{width:230px;height:150px;border:1px solid var(--border-2);border-radius:10px;background:var(--bg-panel);overflow:hidden;cursor:pointer;display:block;padding:0}
-.tsoftThumb img{width:100%;height:100%;object-fit:contain;display:block}
+
+/* ✅ çerçeveyi yok et: border/background/radius kaldır */
+.tsoftThumb{
+  width:230px;height:150px;
+  border:0;background:transparent;border-radius:0;
+  overflow:visible;cursor:pointer;display:block;padding:0;
+}
+
+/* ✅ küçük resim %10 büyüsün, yer değişmesin */
+.tsoftThumb img{
+  width:100%;height:100%;
+  object-fit:contain;display:block;
+  transform:scale(1.10);
+  transform-origin:center center;
+}
 
 .imgOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--overlay-strong);z-index:900;padding:18px}
 .imgOverlay.show{display:flex}
@@ -231,10 +255,7 @@ a:hover{text-decoration:underline}
   font-weight:800;font-size:14px
 }
 
-/* ✅ Aidestek.webp:
-   - yatay: eski tasarım gibi sağa kayık (calc(50% + 100px))
-   - dikey: pasteWrap içinde ortalanmış gibi ama optik olarak biraz yukarı alınmış
-*/
+/* ✅ Aidestek.webp */
 #depoSpin{
   position:absolute;
   left:calc(50% + 100px);
@@ -330,7 +351,7 @@ a:hover{text-decoration:underline}
 <div class="tsoftText"><div class="tsoftFlex"><div class="tsoftLeft">
 <a class="popLinkTitle" href="https://sescibaba-com.tsoftpanel.com/frame/app-store/app.csvexport/products/export" target="_blank" rel="noopener" title="Yeni sekmede aç">T-Soft &gt; Ürünler &gt; Excel Ürün Sihirbazı &gt; Exel Ürün Dışa Aktar</a>
 <div class="miniSep" aria-hidden="true"></div>
-<div class="tsoftCols">→Web Servis Kodu<br>→Ürün Adı<br>→Tedarikçi Ürün Kodu<br>→Barkod<br>→Stok<br>→Marka<br>→SEO Link</div>
+<div class="tsoftCols">→Web Servis Kodu<br>→Ürün Adı<br>→Tedarikçi Ürün Kodu<br>→Barkod<br>→Stok<br>→Aktif<br>→Marka<br>→SEO Link</div>
 
 <div class="miniSep" aria-hidden="true"></div>
 <label class="saveLine left" title="Yetkili için: Bugünün verisi olarak kaydeder (overwrite)">
