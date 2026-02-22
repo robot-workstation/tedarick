@@ -18,13 +18,12 @@ function css(){
 .tagLeft{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tagRight{flex:0 0 auto;text-align:right;white-space:nowrap;opacity:.92;font-weight:1100}
 .tagLeft .nm,.tagLeft .cellTxt{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* ✅ theme uyumu: sepL turuncu tonu */
-.sepL{border-left:1px solid rgba(255,106,0,.28)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
+/* ✅ theme uyumu: sepL pembe/kırmızı tonu */
+.sepL{border-left:1px solid rgba(232,60,97,.28)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
 #listTitle,#unmatchedTitle{font-weight:1300!important;font-size:20px!important;letter-spacing:.02em}
 #t1 thead th .hTxt,#t2 thead th .hTxt{display:inline-block;transform-origin:left center}
 th.hdrThin{font-weight:700!important}
 th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
-/* ✅ İSTENEN: tablo başlık arkaplanı #1b1b1b */
 #t1 thead th,#t2 thead th{position:sticky!important;top:var(--theadTop,0px)!important;z-index:120!important;background:#1b1b1b!important;box-shadow:0 1px 0 rgba(31,36,48,.9)}
 `;
   document.head.appendChild(st)
@@ -116,8 +115,8 @@ export function createRenderer({ui}={}){
         const hasMatch = !!r?._m;
         const txt = (v??'').toString().trim();
         if(!hasMatch || !txt){
-          // ✅ İSTENEN: eşleşmemiş ürünlerde boş hücreye uyarı yazısı
-          return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm" style="color:#fca5a5;font-weight:1200">Eşleştir veya Stok Aç</span></td>`;
+          // ✅ uyarı rengi: tema uyumlu ama net (var(--bad))
+          return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm" style="color:var(--bad);font-weight:1200">Eşleştir veya Stok Aç</span></td>`;
         }
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
       }
@@ -151,7 +150,8 @@ export function createRenderer({ui}={}){
         const aNm=r["Aide Ürün Adı"]??r["Depo Ürün Adı"]??'',aPulse=!!r._pulseD;
 
         const cNum=stockToNumber(r._cstokraw??'',{source:'compel'});
-        const cTag=cNm?(cNum<=0?'(Stok Yok)':`(Stok: ${fmtNum(cNum)})`):'';
+        // ✅ İSTENEN: stok varsa (Stok: 1) yerine (Stok Var)
+        const cTag=cNm?(cNum<=0?'(Stok Yok)':'(Stok Var)'):'';
 
         const tAct=r._taktif,tStock=Number(r._tstok??0);
         const tTag=tNm?(tAct===true?`(Aktif: ${fmtNum(tStock)} Stok)`:(tAct===false?'(Pasif)':'')):'';
