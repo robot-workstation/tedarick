@@ -3,7 +3,13 @@ import { COLS } from './match.js';
 const $=id=>document.getElementById(id);
 const colGrp=w=>`<colgroup>${w.map(x=>`<col style="width:${x}%">`).join('')}</colgroup>`;
 
-const HDR1={"Sıra No":"Sıra","Marka":"Marka","Ürün Adı (Compel)":"Compel Ürün Adı","Ürün Adı (T-Soft)":"Tsoft Ürün Adı","Ürün Kodu (Compel)":"Compel Ürün Kodu","Ürün Kodu (T-Soft)":"T-Soft Ürün Kodu","Stok (Compel)":"Compel","Stok (Depo)":"Aide","Stok (T-Soft)":"T-Soft","Stok Durumu":"Stok Durumu","EAN (Compel)":"Compel EAN","EAN (T-Soft)":"T-Soft EAN"};
+const HDR1={
+  "Sıra No":"Sıra","Marka":"Marka",
+  "Ürün Kodu (Compel)":"Compel Ürün Kodu","Ürün Adı (Compel)":"Compel Ürün Adı",
+  "Ürün Kodu (T-Soft)":"T-Soft Ürün Kodu","Ürün Adı (T-Soft)":"Tsoft Ürün Adı",
+  "Stok (Compel)":"Compel","Stok (Depo)":"Aide","Stok (T-Soft)":"T-Soft","Stok Durumu":"Stok Durumu",
+  "EAN (Compel)":"Compel EAN","EAN (T-Soft)":"T-Soft EAN"
+};
 const disp=c=>HDR1[c]||c;
 const fmtHdr=s=>{s=(s??'').toString();const m=s.match(/^(.*?)(\s*\([^)]*\))\s*$/);return m?`<span class="hMain">${esc(m[1].trimEnd())}</span> <span class="hParen">${esc(m[2].trim())}</span>`:esc(s)};
 
@@ -51,7 +57,6 @@ function enforceSticky(){
   document.querySelectorAll('.tableWrap').forEach(w=>{w.style.overflow='visible';w.style.overflowX='visible';w.style.overflowY='visible'});
   document.documentElement.style.setProperty('--theadTop','0px')
 }
-
 function fitHeader(tableId){
   const t=$(tableId);if(!t)return;
   t.querySelectorAll('thead th').forEach(th=>{
@@ -61,10 +66,8 @@ function fitHeader(tableId){
     sp.style.transform=`scaleX(${s})`
   })
 }
-
 function adjust(){
   _raf=0;enforceSticky();fitHeader('t1');fitHeader('t2');
-
   const nameFit=tableId=>{
     const t=$(tableId);if(!t)return;
     const rows=t.querySelectorAll('tbody tr'),G=6;
@@ -93,7 +96,7 @@ export function createRenderer({ui}={}){
   return{render(R,Ux,depotReady){
     const T1_SEP_LEFT=new Set(["Stok (Compel)","EAN (Compel)"]);
     const tight=c=>(c==="Ürün Kodu (Compel)"||c==="Ürün Kodu (T-Soft)");
-    const W1=[4,8,15,15,7,7,6,6,6,6,10,10];
+    const W1=[4,8,8,18,8,18,6,6,6,6,10,10];
 
     const head=COLS.map(c=>{
       const l=disp(c);
@@ -111,15 +114,16 @@ export function createRenderer({ui}={}){
       })
       .map(x=>x.row);
 
-    const body=(Rview||[]).map(r=>`<tr>${COLS.map((c,idx)=>{
-      const v=r[c]??'';
+    const body=(Rview||[]).map((r,rowIdx)=>`<tr>${COLS.map((c,idx)=>{
+      let v=r[c]??'';
+
+      if(c==="Sıra No") v=String(rowIdx+1); // ✅ ekranda 1-2-3... düzgün artsın
 
       if(c==="Ürün Adı (Compel)")return `<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
 
       if(c==="Ürün Adı (T-Soft)"){
         const hasMatch=!!r?._m,txt=(v??'').toString().trim();
         if(!hasMatch||!txt){
-          // ✅ ortalı görünsün
           return `<td class="nameCell" style="text-align:center" title="Eşleştir veya Stok Aç"><span class="nm warnHalo" style="color:var(--warn);font-weight:1200">Eşleştir veya Stok Aç</span></td>`;
         }
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
