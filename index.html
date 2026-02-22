@@ -215,6 +215,32 @@ a:hover{text-decoration:underline}
   transform-origin:center center;
 }
 
+/* ✅ İSTENEN: hover'da hafif silik "Büyüt" yazısı */
+.tsoftThumb{position:relative}
+.tsoftThumb::after{
+  content:"Büyüt";
+  position:absolute;
+  inset:auto 10px 10px 10px;
+  height:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.35);
+  color:rgba(255,255,255,.72);
+  font-weight:1100;
+  font-size:13px;
+  letter-spacing:.02em;
+  opacity:0;
+  transform:translateY(2px);
+  transition:opacity 140ms ease,transform 140ms ease;
+  pointer-events:none;
+  backdrop-filter:blur(3px);
+}
+.tsoftThumb:hover::after{opacity:.72;transform:translateY(0)}
+.tsoftThumb:focus-visible::after{opacity:.85;transform:translateY(0)}
+
 .imgOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--overlay-strong);z-index:900;padding:18px}
 .imgOverlay.show{display:flex}
 .imgOverlay .lbWrap{transform:scale(.86);opacity:0;transition:transform 220ms ease,opacity 220ms ease;will-change:transform,opacity}
@@ -252,7 +278,48 @@ a:hover{text-decoration:underline}
   filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));
   border-radius:6px;
   cursor:pointer;
+
+  /* ✅ button reset */
+  background:transparent;
+  border:0;
+  padding:0;
 }
+
+/* depoSpin artık button; içindeki img aynı görünür */
+#depoSpin img{
+  width:100%;
+  height:auto;
+  display:block;
+  border-radius:6px;
+}
+
+/* ✅ İSTENEN: hover'da hafif silik "Büyüt" yazısı (Aide kutucuğu) */
+#depoSpin::after{
+  content:"Büyüt";
+  position:absolute;
+  left:50%;
+  bottom:-14px;
+  transform:translateX(-50%) translateY(2px);
+  height:26px;
+  padding:0 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.35);
+  color:rgba(255,255,255,.72);
+  font-weight:1100;
+  font-size:12px;
+  letter-spacing:.02em;
+  opacity:0;
+  transition:opacity 140ms ease,transform 140ms ease;
+  pointer-events:none;
+  backdrop-filter:blur(3px);
+  white-space:nowrap;
+}
+#depoSpin:hover::after{opacity:.72;transform:translateX(-50%) translateY(0)}
+#depoSpin:focus-visible::after{opacity:.85;transform:translateX(-50%) translateY(0)}
 
 .ctrlStack{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .cloudPrev{
@@ -327,7 +394,8 @@ a:hover{text-decoration:underline}
 <div class="modal" id="tsoftModal" aria-hidden="true"><div class="modalInner small popInner" id="tsoftInner">
 <div class="popPickWrap">
   <button id="tsoftDailyBtn" class="cloudBtnSmall" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
-  <button id="tsoftClose" class="popPick" type="button">products.csv Yükle</button>
+  <!-- ✅ İSTENEN: 'products.csv Yükle' => 'CSV Yükle' -->
+  <button id="tsoftClose" class="popPick" type="button">CSV Yükle</button>
   <button id="tsoftDismiss" class="popDismiss" type="button">Kapat</button>
 </div>
 
@@ -374,7 +442,10 @@ a:hover{text-decoration:underline}
     </label>
   </div>
 
-  <img id="depoSpin" src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Aidestek.webp" alt="">
+  <!-- ✅ depoSpin: img yerine button içine img (hover label için) -->
+  <button id="depoSpin" type="button" title="Büyüt" aria-label="Büyüt">
+    <img src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Aidestek.webp" alt="">
+  </button>
 </div>
 </div></div>
 
@@ -385,7 +456,7 @@ a:hover{text-decoration:underline}
 </script>
 
 <script type="module">
-(()=>{const img=document.getElementById('depoSpin'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!img||!o||!oi)return;let t=null;const open=()=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=img.currentSrc||img.src;o.classList.add('show');o.setAttribute('aria-hidden','false')};img.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});})();
+(()=>{const btn=document.getElementById('depoSpin'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!btn||!o||!oi)return;const img=btn.querySelector('img');if(!img)return;let t=null;const open=()=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=img.currentSrc||img.src;o.classList.add('show');o.setAttribute('aria-hidden','false')};btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});})();
 </script>
 
 <script type="module" src="./js/app.js"></script>
