@@ -20,22 +20,27 @@
   --text:#E6E6E6;
   --text-2:#A0A0A0;
 
-  --accent:#FF6A00;
-  --accent-hover:#FF8126;
-  --accent-soft:rgba(255,106,0,.12);
-  --accent-glow:rgba(255,106,0,.55);
+  /* ✅ THEME: turuncu -> pembe/kırmızı (#e83c61 yakınları) */
+  --accent:#e83c61;
+  --accent-hover:#ff5579;
+  --accent-soft:rgba(232,60,97,.12);
+  --accent-glow:rgba(232,60,97,.55);
 
-  --link:#8FB7FF;
+  /* ✅ link rengi de tema uyumlu */
+  --link:#ff6f95;
 
   --ok:#86efac;
-  --bad:#fca5a5;
+
+  /* ✅ uyarı rengi: tema uyumlu ama kaybolmaz */
+  --bad:#ff4d79;
+
   --unk:#fcd34d;
 
   --overlay:rgba(0,0,0,.55);
   --overlay-strong:rgba(0,0,0,.78);
   --shadow:rgba(0,0,0,.55);
 
-  /* ✅ İSTENEN: tablo başlık arkaplanı */
+  /* ✅ tablo başlık arkaplanı */
   --thead-bg:#1b1b1b;
 }
 
@@ -71,9 +76,9 @@ button:disabled{opacity:.55;cursor:not-allowed}
 button:disabled:hover{background:var(--bg-elevated);border-color:var(--border-2)}
 
 @keyframes guidePulse{
-  0%{box-shadow:0 0 0 rgba(255,106,0,0);border-color:var(--border-2)}
+  0%{box-shadow:0 0 0 rgba(232,60,97,0);border-color:var(--border-2)}
   55%{box-shadow:0 0 18px var(--accent-glow);border-color:var(--accent-hover)}
-  100%{box-shadow:0 0 0 rgba(255,106,0,0);border-color:var(--border-2)}
+  100%{box-shadow:0 0 0 rgba(232,60,97,0);border-color:var(--border-2)}
 }
 .guidePulse{animation:guidePulse var(--guideDur,1200ms) ease-in-out infinite}
 
@@ -121,9 +126,9 @@ button:disabled:hover{background:var(--bg-elevated);border-color:var(--border-2)
 .brand:hover{border-color:var(--border-2)}
 .brand.sel{background:var(--accent-soft);border-color:var(--accent-hover)}
 @keyframes brandGlow{
-  0%{box-shadow:0 0 0 rgba(255,106,0,0);border-color:var(--border)}
-  40%{box-shadow:0 0 18px rgba(255,106,0,.45);border-color:var(--accent-hover)}
-  100%{box-shadow:0 0 0 rgba(255,106,0,0);border-color:var(--border)}
+  0%{box-shadow:0 0 0 rgba(232,60,97,0);border-color:var(--border)}
+  40%{box-shadow:0 0 18px rgba(232,60,97,.45);border-color:var(--accent-hover)}
+  100%{box-shadow:0 0 0 rgba(232,60,97,0);border-color:var(--border)}
 }
 .brandList.glow .brand{animation:brandGlow 900ms ease-out}
 .bRow{display:flex;gap:8px;align-items:center;min-width:0;width:100%}
@@ -141,7 +146,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{border-bottom:1px solid var(--border);padding:9px 6px;text-align:center;vertical-align:middle;font-size:14px;line-height:1.1}
 td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ✅ İSTENEN: thead/th arkaplanı */
+/* ✅ thead/th arkaplanı */
 th{
   position:sticky;top:0;z-index:2;
   background:var(--thead-bg);
@@ -210,11 +215,19 @@ a:hover{text-decoration:underline}
   border:1px solid var(--border-2);border-radius:12px;padding:10px;
   font-weight:800;font-size:14px
 }
+
+/* ✅ Aide webp: kutunun ortasında (dikey ve yatay) */
 #depoSpin{
-  position:absolute;left:calc(50% + 100px);top:50%;
+  position:absolute;
+  left:50%;
+  top:50%;
   transform:translate(-50%,-50%) scale(1.875);
-  width:min(180px,60%);opacity:.95;pointer-events:none;z-index:2;
-  filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));border-radius:6px
+  width:min(180px,60%);
+  opacity:.95;
+  pointer-events:none;
+  z-index:2;
+  filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));
+  border-radius:6px
 }
 
 .ctrlStack{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
@@ -226,7 +239,7 @@ a:hover{text-decoration:underline}
 }
 .cloudPrev:hover{
   border-color:var(--bad);
-  box-shadow:0 0 18px rgba(252,165,165,.45);
+  box-shadow:0 0 18px rgba(255,77,121,.45);
   color:var(--bad);
 }
 .cloudBtnSmall{
@@ -241,7 +254,8 @@ a:hover{text-decoration:underline}
 .saveLine span{opacity:.92;font-weight:1000;white-space:nowrap}
 .saveLine.left{justify-content:flex-start}
 
-.sepL{border-left:1px solid rgba(255,106,0,.28)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
+/* ✅ sepL rengi theme uyumlu */
+.sepL{border-left:1px solid rgba(232,60,97,.28)!important;box-shadow:inset 1px 0 0 rgba(0,0,0,.35)}
 </style></head>
 <body><main class="layout">
 <header class="siteHeader"><div class="siteTitle">Tedarick-G</div></header>
@@ -289,7 +303,6 @@ a:hover{text-decoration:underline}
 <!-- ✅ TSOFT MODAL -->
 <div class="modal" id="tsoftModal" aria-hidden="true"><div class="modalInner small popInner" id="tsoftInner">
 <div class="popPickWrap">
-  <!-- ✅ İSTENEN: Bugün butonu 1. sıraya -->
   <button id="tsoftDailyBtn" class="cloudBtnSmall" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
   <button id="tsoftClose" class="popPick" type="button">products.csv Yükle</button>
   <button id="tsoftDismiss" class="popDismiss" type="button">Kapat</button>
@@ -313,7 +326,6 @@ a:hover{text-decoration:underline}
 <!-- ✅ AIDE MODAL -->
 <div class="modal" id="depoModal" aria-hidden="true"><div class="modalInner small" id="depoInner">
 <div class="modalBtns">
-  <!-- ✅ İSTENEN: Bugün butonu Yükle'den önce + aynı yükseklik -->
   <button id="aideDailyBtn" class="cloudBtnSmall" style="height:36px" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
   <button id="depoLoad" type="button">Yükle</button>
   <button id="depoPasteBtn" type="button">Yapıştır</button>
