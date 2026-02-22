@@ -1,3 +1,5 @@
+// depot.js (TAMAMI - DÜZELTİLMİŞ)
+
 import { TR,T,parseDelimited,pickColumn } from './utils.js';
 const $=id=>document.getElementById(id);
 
@@ -92,7 +94,16 @@ export function createDepot({ui,onDepotLoaded,normBrand}={}){
         const k=(brNorm+'||'+nm).toLocaleLowerCase(TR).replace(/\s+/g,' ').trim();
         if(!k||seen.has(k))continue;seen.add(k);
         const ag=depotAgg(it.code);
-        out.push({_type:'depo',_bn:brNorm,"Marka":brandLabelByNorm.get(brNorm)||brNorm,"Depo Ürün Adı":nm,_dnum:ag?.num??0})
+
+        // ✅ Aide Ürün Kodu: eşleşmeyen ürünün stok kodu
+        out.push({
+          _type:'depo',
+          _bn:brNorm,
+          "Marka":brandLabelByNorm.get(brNorm)||brNorm,
+          "Depo Ürün Adı":nm,
+          "Aide Ürün Kodu":it.code || '',
+          _dnum:ag?.num??0
+        })
       }
     }
     out.sort((a,b)=>{
