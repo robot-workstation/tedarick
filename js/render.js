@@ -7,7 +7,7 @@ const HDR1={
   "Sıra No":"Sıra","Marka":"Marka",
   "Ürün Kodu (Compel)":"Compel Ürün Kodu","Ürün Adı (Compel)":"Compel Ürün Adı",
   "Ürün Kodu (T-Soft)":"T-Soft Ürün Kodu","Ürün Adı (T-Soft)":"Tsoft Ürün Adı",
-  "Stok (Compel)":"Compel","Stok (Depo)":"Aide","Stok (T-Soft)":"T-Soft","Stok Durumu":"Stok Durumu",
+  "Stok (Compel)":"Compel","Stok (Depo)":"Aide","Stok (T-Soft)":"T-Soft",
   "EAN (Compel)":"Compel EAN","EAN (T-Soft)":"T-Soft EAN"
 };
 const disp=c=>HDR1[c]||c;
@@ -39,8 +39,6 @@ th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
      0 0 2px var(--warn-halo-2, rgba(245,245,245,.20)),
      0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
 }
-
-/* dar kolonlar: padding kıs + metni KESME/ALT SATIR YAPMA, sığmazsa yatay scroll */
 th.tightCol,td.tightCol{padding-left:4px!important;padding-right:4px!important}
 td.scrollCell{overflow-x:auto!important;overflow-y:hidden!important;text-overflow:clip!important}
 td.scrollCell .cellTxt{display:inline-block;white-space:nowrap}
@@ -99,17 +97,12 @@ const fmtNum=n=>{const x=Number(n);return Number.isFinite(x)?(Math.round(x)===x?
 
 export function createRenderer({ui}={}){
   return{render(R,Ux,depotReady){
-    // ✅ İstenen yeni seperatörler:
-    // - Marka | Compel Ürün Kodu  => sepL "Ürün Kodu (Compel)" üzerinde
-    // - Compel Ürün Adı | T-Soft Ürün Kodu => sepL "Ürün Kodu (T-Soft)" üzerinde
-    // - Stok Durumu | Compel EAN => sepL "EAN (Compel)" üzerinde (zaten vardı)
     const T1_SEP_LEFT=new Set(["Ürün Kodu (Compel)","Ürün Kodu (T-Soft)","Stok (Compel)","EAN (Compel)"]);
-
     const tight=c=>(c==="Ürün Kodu (Compel)"||c==="Ürün Kodu (T-Soft)");
-
     const NARROW_SCROLL=new Set(["Sıra No","Marka","Ürün Kodu (Compel)","Ürün Kodu (T-Soft)","EAN (Compel)","EAN (T-Soft)"]);
 
-    const W1=[3,6,6,21,6,21,6,6,6,6,6,7];
+    // 11 kolon (stok durumu kalktı) toplam 100
+    const W1=[3,6,6,23,6,23,7,7,7,6,6];
 
     const head=COLS.map(c=>{
       const l=disp(c);
@@ -145,15 +138,17 @@ export function createRenderer({ui}={}){
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
       }
 
-      const seq=idx===0,sd=c==="Stok Durumu";
+      const seq=idx===0;
       const ean=(c==="EAN (Compel)"||c==="EAN (T-Soft)");
       const eanBad=(c==="EAN (T-Soft)"&&r?._m&&r?._eanBad===true);
-      const bad=(sd&&String(v||'')==='Hatalı')||eanBad;
+
+      // ✅ Stok Durumu görevi "Stok (T-Soft)" hücresine taşındı
+      const stokBad=(c==="Stok (T-Soft)"&&r?._m&&r?._stokBad===true);
+      const bad=eanBad||stokBad;
 
       const cls=[
         T1_SEP_LEFT.has(c)?'sepL':'',
         seq?'seqCell':'',
-        sd?'statusBold':'',
         ean?'eanCell':'',
         bad?'flagBad':'',
         NARROW_SCROLL.has(c)?'tightCol scrollCell':''
