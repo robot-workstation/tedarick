@@ -215,7 +215,7 @@ a:hover{text-decoration:underline}
   transform-origin:center center;
 }
 
-/* ✅ İSTENEN: hover'da hafif silik "Büyüt" yazısı */
+/* ✅ hover'da hafif silik "Büyüt" yazısı (T-Soft) */
 .tsoftThumb{position:relative}
 .tsoftThumb::after{
   content:"Büyüt";
@@ -266,7 +266,8 @@ a:hover{text-decoration:underline}
   font-weight:800;font-size:14px
 }
 
-#depoSpin{
+/* ✅ AIDE WEBP: eski konumu koru (wrap sadece hover label için) */
+#depoSpinWrap{
   position:absolute;
   left:calc(50% + 100px);
   top:50%;
@@ -278,23 +279,16 @@ a:hover{text-decoration:underline}
   filter:drop-shadow(0 10px 24px rgba(0,0,0,.45));
   border-radius:6px;
   cursor:pointer;
-
-  /* ✅ button reset */
-  background:transparent;
-  border:0;
-  padding:0;
 }
-
-/* depoSpin artık button; içindeki img aynı görünür */
-#depoSpin img{
+#depoSpin{
   width:100%;
   height:auto;
   display:block;
   border-radius:6px;
 }
 
-/* ✅ İSTENEN: hover'da hafif silik "Büyüt" yazısı (Aide kutucuğu) */
-#depoSpin::after{
+/* ✅ hover'da hafif silik "Büyüt" yazısı (Aide) */
+#depoSpinWrap::after{
   content:"Büyüt";
   position:absolute;
   left:50%;
@@ -318,8 +312,8 @@ a:hover{text-decoration:underline}
   backdrop-filter:blur(3px);
   white-space:nowrap;
 }
-#depoSpin:hover::after{opacity:.72;transform:translateX(-50%) translateY(0)}
-#depoSpin:focus-visible::after{opacity:.85;transform:translateX(-50%) translateY(0)}
+#depoSpinWrap:hover::after{opacity:.72;transform:translateX(-50%) translateY(0)}
+#depoSpinWrap:focus-within::after{opacity:.85;transform:translateX(-50%) translateY(0)}
 
 .ctrlStack{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .cloudPrev{
@@ -394,7 +388,6 @@ a:hover{text-decoration:underline}
 <div class="modal" id="tsoftModal" aria-hidden="true"><div class="modalInner small popInner" id="tsoftInner">
 <div class="popPickWrap">
   <button id="tsoftDailyBtn" class="cloudBtnSmall" type="button" disabled title="Bugünün verisini seç">Bugün —</button>
-  <!-- ✅ İSTENEN: 'products.csv Yükle' => 'CSV Yükle' -->
   <button id="tsoftClose" class="popPick" type="button">CSV Yükle</button>
   <button id="tsoftDismiss" class="popDismiss" type="button">Kapat</button>
 </div>
@@ -442,10 +435,10 @@ a:hover{text-decoration:underline}
     </label>
   </div>
 
-  <!-- ✅ depoSpin: img yerine button içine img (hover label için) -->
-  <button id="depoSpin" type="button" title="Büyüt" aria-label="Büyüt">
-    <img src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Aidestek.webp" alt="">
-  </button>
+  <!-- ✅ ES Kİ HAL: img id depoSpin (konum/transform aynı) -->
+  <div id="depoSpinWrap" tabindex="0" role="button" aria-label="Büyüt" title="Büyüt">
+    <img id="depoSpin" src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Aidestek.webp" alt="">
+  </div>
 </div>
 </div></div>
 
@@ -456,7 +449,7 @@ a:hover{text-decoration:underline}
 </script>
 
 <script type="module">
-(()=>{const btn=document.getElementById('depoSpin'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!btn||!o||!oi)return;const img=btn.querySelector('img');if(!img)return;let t=null;const open=()=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=img.currentSrc||img.src;o.classList.add('show');o.setAttribute('aria-hidden','false')};btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});})();
+(()=>{const wrap=document.getElementById('depoSpinWrap'),img=document.getElementById('depoSpin'),o=document.getElementById('imgOverlay'),oi=document.getElementById('imgOverlayImg');if(!wrap||!img||!o||!oi)return;let t=null;const open=()=>{t&&(clearTimeout(t),t=null);o.classList.remove('closing');oi.src=img.currentSrc||img.src;o.classList.add('show');o.setAttribute('aria-hidden','false')};wrap.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});wrap.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();open()});})();
 </script>
 
 <script type="module" src="./js/app.js"></script>
