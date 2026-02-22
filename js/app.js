@@ -107,7 +107,7 @@ const applySupplierUi=()=>{
   updateGuideUI()
 };
 
-/* ✅ META'DAN SAAT ÇEKME (Aide için — çıkmasın diye daha esnek) */
+/* ✅ META'DAN SAAT ÇEKME (Aide için) */
 function pickHMFrom(obj){
   if(!obj) return '';
   const direct = String(obj.hm||obj.HM||obj.time||obj.saat||obj.hour||obj.hhmm||'').trim();
@@ -123,9 +123,51 @@ function pickHMFrom(obj){
   return '';
 }
 
+/* ✅ ymd/dmy çekmek için ufak yardımcı */
+function pickDateFrom(obj){
+  if(!obj) return { ymd:'', dmy:'' };
+  const ymd = String(obj.ymd || obj.YMD || obj.date || obj.day || obj.gun || '').trim();
+  const dmy = String(obj.dmy || obj.DMY || obj.dateText || obj.display || obj.tarih || '').trim();
+  return { ymd, dmy };
+}
+
+/* ✅ Aide için: bugün varsa "Bugün HH:MM Tarihli Veri", yoksa dünkü "<tarih> Tarihli Veri" */
+function getAideDailyPick(){
+  // Today adayları (meta farklı gelebilir diye geniş)
+  const todayAide =
+    DAILY_META?.today?.aide ||
+    DAILY_META?.aide?.today ||
+    DAILY_META?.todayAide ||
+    DAILY_META?.aideToday ||
+    null;
+
+  const yesterdayAide =
+    DAILY_META?.yesterday?.aide ||
+    DAILY_META?.aide?.yesterday ||
+    DAILY_META?.yesterdayAide ||
+    DAILY_META?.aideYesterday ||
+    null;
+
+  const todayExists = !!(todayAide?.exists || DAILY_META?.today?.aideExists || DAILY_META?.today?.aide?.exists);
+  const yestExists  = !!(yesterdayAide?.exists || DAILY_META?.yesterday?.aideExists || DAILY_META?.yesterday?.aide?.exists);
+
+  const todayDate = pickDateFrom(DAILY_META?.today);
+  const yestDate  = pickDateFrom(DAILY_META?.yesterday);
+
+  if(todayExists){
+    const hm = pickHMFrom(todayAide) || pickHMFrom(DAILY_META?.today) || '';
+    return { exists:true, isToday:true, ymd:todayDate.ymd, dmy:todayDate.dmy, hm };
+  }
+  if(yestExists){
+    // dünkü Aide verisi: saat değil tarih yazacağız
+    return { exists:true, isToday:false, ymd:yestDate.ymd, dmy:yestDate.dmy, hm:'' };
+  }
+  return { exists:false, isToday:false, ymd:'', dmy:'', hm:'' };
+}
+
 /* ✅ BUTON METİNLERİ:
-   - "burada tarih" Tarihli Veri
-   - Bugün "burada saat" Tarihli Veri
+   - Eski veri: "<tarih> Tarihli Veri"
+   - Aynı gün: "Bugün <saat> Tarihli Veri"
 */
 function paintDailyUI(){
   const tBtn=$('tsoftDailyBtn'),aBtn=$('aideDailyBtn');
@@ -134,44 +176,32 @@ function paintDailyUI(){
   const yYmd=String(DAILY_META?.yesterday?.ymd||'').trim();
   const yDmy=String(DAILY_META?.yesterday?.dmy||'').trim();
 
-  // T-Soft yesterday meta
+  // T-Soft yesterday meta (mevcut davranış: dünkü veri)
   const tExists = !!(DAILY_META?.yesterday?.tsoft?.exists);
-
-  // Aide: meta farklı gelebilir => geniş kontrol
-  const aExists = !!(
-    DAILY_META?.yesterday?.aide?.exists ||
-    DAILY_META?.today?.aide?.exists ||
-    DAILY_META?.aide?.exists ||
-    DAILY_META?.yesterday?.aideExists ||
-    DAILY_META?.today?.aideExists
-  );
-
-  const dateLabel = (yDmy ? `${yDmy} Tarihli Veri` : '—');
-
-  // Aide saat: önce today.aide -> today -> yesterday.aide gibi dene
-  const hm =
-    pickHMFrom(DAILY_META?.today?.aide) ||
-    pickHMFrom(DAILY_META?.today) ||
-    pickHMFrom(DAILY_META?.yesterday?.aide) ||
-    pickHMFrom(DAILY_META?.yesterday) ||
-    '';
-
-  const timeLabel = hm ? `Bugün ${hm} Tarihli Veri` : 'Bugün — Tarihli Veri';
-
+  const tDateLabel = (yDmy ? `${yDmy} Tarihli Veri` : '—');
   const tSel = !!(DAILY_SELECTED.tsoft && DAILY_SELECTED.tsoft===yYmd);
-  const aSel = !!(DAILY_SELECTED.aide && DAILY_SELECTED.aide===yYmd);
 
   if(tBtn){
     tBtn.disabled=!tExists;
-    tBtn.title=tExists?dateLabel:'—';
-    tBtn.textContent=tSel?'Seçildi':dateLabel;
+    tBtn.title=tExists?tDateLabel:'—';
+    tBtn.textContent=tSel?'Seçildi':tDateLabel;
     setBtnSel(tBtn,tSel);
   }
 
+  // ✅ Aide pick: bugün varsa "Bugün HH:MM...", yoksa dünkü "<tarih>..."
+  const aidePick = getAideDailyPick();
+  const aLabel = aidePick.exists
+    ? (aidePick.isToday
+        ? (aidePick.hm ? `Bugün ${aidePick.hm} Tarihli Veri` : 'Bugün — Tarihli Veri')
+        : (aidePick.dmy ? `${aidePick.dmy} Tarihli Veri` : '—'))
+    : '—';
+
+  const aSel = !!(aidePick.ymd && DAILY_SELECTED.aide && DAILY_SELECTED.aide===aidePick.ymd);
+
   if(aBtn){
-    aBtn.disabled=!aExists;
-    aBtn.title=aExists?timeLabel:'—';
-    aBtn.textContent=aSel?'Seçildi':timeLabel;
+    aBtn.disabled=!aidePick.exists;
+    aBtn.title=aidePick.exists?aLabel:'—';
+    aBtn.textContent=aSel?'Seçildi':aLabel;
     setBtnSel(aBtn,aSel);
   }
 
@@ -193,9 +223,8 @@ function closeModalByButton(btnId){
 
 function toggleDaily(kind){
   const ymd=String(DAILY_META?.yesterday?.ymd||'').trim();
-  if(!ymd){ return; }
-
   if(kind==='tsoft'){
+    if(!ymd){ return; }
     const was = (DAILY_SELECTED.tsoft===ymd);
     DAILY_SELECTED.tsoft = was ? '' : ymd;
     paintDailyUI();
@@ -206,8 +235,11 @@ function toggleDaily(kind){
       if(!hasEverListed && SELECTED.size>0) setGuideStep('tsoft');
     }
   }else if(kind==='aide'){
-    const was = (DAILY_SELECTED.aide===ymd);
-    DAILY_SELECTED.aide = was ? '' : ymd;
+    const pick = getAideDailyPick();
+    if(!pick?.exists || !pick?.ymd){ return; }
+
+    const was = (DAILY_SELECTED.aide===pick.ymd);
+    DAILY_SELECTED.aide = was ? '' : pick.ymd;
     paintDailyUI();
     if(!was){
       closeModalByButton('depoClose');
