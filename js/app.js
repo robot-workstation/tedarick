@@ -46,14 +46,12 @@ const INFO_HIDE_IDS=['brandStatus','l1Chip','l2Chip','l4Chip','sum'];
 let DAILY_META=null;
 
 /**
- * ✅ Seçimler artık boolean değil, DATE (ymd) tutuyor.
- * - '' => seçili değil
- * - 'YYYY-MM-DD' => seçili (şu tarihin verisi)
+ * Seçimler date (ymd)
  */
 let DAILY_SELECTED={tsoft:'',aide:''};
 
-let DAILY_READ_CACHE={date:'',pass:''}; // okuma şifresi (başarılı fetch sonrası cache)
-let DAILY_SAVE_CRED=null;              // {adminPassword, readPassword} (1 kere)
+let DAILY_READ_CACHE={date:'',pass:''};
+let DAILY_SAVE_CRED=null;
 const setBtnSel=(btn,sel)=>{if(!btn)return;sel?btn.classList.add('sel'):btn.classList.remove('sel')};
 
 /* brands */
@@ -109,21 +107,23 @@ const applySupplierUi=()=>{
   updateGuideUI()
 };
 
-/* ✅ daily UI helpers */
-function pickMetaTime(){
-  // API farklı şekillerde dönebilir; olabildiğince esnek alıyoruz.
-  const t=DAILY_META?.today||DAILY_META?.Today||null;
-  if(!t) return '';
-  const hm = String(t.hm||t.HM||t.time||t.saat||t.hour||'').trim();
-  if(hm) return hm;
+/* ✅ META'DAN SAAT ÇEKME (Aide için — çıkmasın diye daha esnek) */
+function pickHMFrom(obj){
+  if(!obj) return '';
+  const direct = String(obj.hm||obj.HM||obj.time||obj.saat||obj.hour||obj.hhmm||'').trim();
+  if(direct) return direct;
 
-  // Eğer ISO gibi bir şey geldiyse, HH:MM çekmeyi dene
-  const iso = String(t.iso||t.ISO||t.createdAt||t.updatedAt||'').trim();
-  const m = iso.match(/T(\d{2}:\d{2})/);
-  return m ? m[1] : '';
+  const iso = String(obj.iso||obj.ISO||obj.createdAt||obj.updatedAt||obj.at||obj.ts||obj.timestamp||'').trim();
+  if(iso){
+    const m = iso.match(/T(\d{2}:\d{2})/);
+    if(m) return m[1];
+    const m2 = iso.match(/\b(\d{2}:\d{2})\b/);
+    if(m2) return m2[1];
+  }
+  return '';
 }
 
-/* ✅ BUTON METİNLERİ: 
+/* ✅ BUTON METİNLERİ:
    - "burada tarih" Tarihli Veri
    - Bugün "burada saat" Tarihli Veri
 */
@@ -134,19 +134,33 @@ function paintDailyUI(){
   const yYmd=String(DAILY_META?.yesterday?.ymd||'').trim();
   const yDmy=String(DAILY_META?.yesterday?.dmy||'').trim();
 
-  const todayHm = pickMetaTime(); // "09:34" gibi
+  // T-Soft yesterday meta
+  const tExists = !!(DAILY_META?.yesterday?.tsoft?.exists);
 
-  const tExists=!!DAILY_META?.yesterday?.tsoft?.exists;
-  const aExists=!!DAILY_META?.yesterday?.aide?.exists;
+  // Aide: meta farklı gelebilir => geniş kontrol
+  const aExists = !!(
+    DAILY_META?.yesterday?.aide?.exists ||
+    DAILY_META?.today?.aide?.exists ||
+    DAILY_META?.aide?.exists ||
+    DAILY_META?.yesterday?.aideExists ||
+    DAILY_META?.today?.aideExists
+  );
 
   const dateLabel = (yDmy ? `${yDmy} Tarihli Veri` : '—');
-  const timeLabel = (todayHm ? `Bugün ${todayHm} Tarihli Veri` : '—');
 
-  // Seçili mi? (şu an seçilen tarih: yesterday.ymd)
+  // Aide saat: önce today.aide -> today -> yesterday.aide gibi dene
+  const hm =
+    pickHMFrom(DAILY_META?.today?.aide) ||
+    pickHMFrom(DAILY_META?.today) ||
+    pickHMFrom(DAILY_META?.yesterday?.aide) ||
+    pickHMFrom(DAILY_META?.yesterday) ||
+    '';
+
+  const timeLabel = hm ? `Bugün ${hm} Tarihli Veri` : 'Bugün — Tarihli Veri';
+
   const tSel = !!(DAILY_SELECTED.tsoft && DAILY_SELECTED.tsoft===yYmd);
   const aSel = !!(DAILY_SELECTED.aide && DAILY_SELECTED.aide===yYmd);
 
-  // T-Soft: tarihli veri etiketi
   if(tBtn){
     tBtn.disabled=!tExists;
     tBtn.title=tExists?dateLabel:'—';
@@ -154,8 +168,6 @@ function paintDailyUI(){
     setBtnSel(tBtn,tSel);
   }
 
-  // Aide: saatli veri etiketi (Bugün HH:MM Tarihli Veri)
-  // Not: Aide’nin de yesterday var/yok bilgisi meta’dan geliyor; buton enable/disable aynı kalır.
   if(aBtn){
     aBtn.disabled=!aExists;
     aBtn.title=aExists?timeLabel:'—';
@@ -163,7 +175,7 @@ function paintDailyUI(){
     setBtnSel(aBtn,aSel);
   }
 
-  // Eski küçük pilller gizli
+  // pill gizli
   if(tPrev){tPrev.style.display='none';tPrev.textContent='';tPrev.title=''}
   if(aPrev){aPrev.style.display='none';aPrev.textContent='';aPrev.title=''}
 }
@@ -180,7 +192,6 @@ function closeModalByButton(btnId){
 }
 
 function toggleDaily(kind){
-  // Seçilecek tarih: DÜN (yesterday.ymd)
   const ymd=String(DAILY_META?.yesterday?.ymd||'').trim();
   if(!ymd){ return; }
 
@@ -189,7 +200,7 @@ function toggleDaily(kind){
     DAILY_SELECTED.tsoft = was ? '' : ymd;
     paintDailyUI();
     if(!was){
-      closeModalByButton('tsoftDismiss'); // otomatik kapat
+      closeModalByButton('tsoftDismiss');
       if(!hasEverListed && SELECTED.size>0) setGuideStep('aide');
     }else{
       if(!hasEverListed && SELECTED.size>0) setGuideStep('tsoft');
@@ -199,7 +210,7 @@ function toggleDaily(kind){
     DAILY_SELECTED.aide = was ? '' : ymd;
     paintDailyUI();
     if(!was){
-      closeModalByButton('depoClose'); // otomatik kapat
+      closeModalByButton('depoClose');
       if(!hasEverListed && SELECTED.size>0) setGuideStep('list');
     }else{
       if(!hasEverListed && SELECTED.size>0) setGuideStep('aide');
@@ -207,7 +218,7 @@ function toggleDaily(kind){
   }
 }
 
-/* ✅ one-time save creds (admin + read pass) */
+/* ✅ one-time save creds */
 function ensureSaveCredOrCancel(){
   if(DAILY_SAVE_CRED?.adminPassword && DAILY_SAVE_CRED?.readPassword) return true;
   const admin=prompt('Yetkili Şifre:');
@@ -218,7 +229,7 @@ function ensureSaveCredOrCancel(){
   return true;
 }
 
-/* ✅ one-time read pass cache (per date) */
+/* ✅ one-time read pass cache */
 async function getReadPassOrPrompt(dateYmd){
   const ymd=String(dateYmd||'').trim();
   if(!ymd) throw new Error('Tarih bulunamadı');
@@ -325,7 +336,7 @@ async function initBrands(){
   }finally{renderBrands();applySupplierUi()}
 }
 
-/* ✅ daily buttons in modals */
+/* daily buttons */
 $('tsoftDailyBtn')?.addEventListener('click',e=>{e.preventDefault();toggleDaily('tsoft')});
 $('aideDailyBtn')?.addEventListener('click',e=>{e.preventDefault();toggleDaily('aide')});
 
@@ -333,14 +344,12 @@ $('aideDailyBtn')?.addEventListener('click',e=>{e.preventDefault();toggleDaily('
 const depot=createDepot({
   ui,normBrand,
   onDepotLoaded:async()=>{
-    // local load wins
     DAILY_SELECTED.aide='';paintDailyUI();
 
     matcher.hasData()&&(matcher.runMatch(),refresh());
     (!hasEverListed&&guideStep==='aide'&&depot.isReady())&&setGuideStep('list');
     applySupplierUi();
 
-    // ✅ save Aide if checkbox checked
     try{
       const cb=$('aideSaveToday');
       if(cb?.checked){
@@ -461,7 +470,6 @@ const bind=(inId,outId,empty)=>{
   const upd=()=>{
     const f=inp.files?.[0];
     if(!f){out.textContent=empty;out.title=empty}else{out.textContent='Seçildi';out.title=f.name}
-    // local file wins
     if(f){DAILY_SELECTED.tsoft='';paintDailyUI();}
     if(!hasEverListed){
       if(SELECTED.size===0)setGuideStep('brand');
@@ -595,7 +603,6 @@ async function generate(){
 
     const L2all=p2.rows;
 
-    // ✅ save T-Soft if checkbox checked
     try{
       const cb=$('tsoftSaveToday');
       if(cb?.checked){
@@ -682,7 +689,7 @@ async function handleGo(){
 }
 goBtn&&(goBtn.onclick=handleGo);
 
-/* ✅ aide save checkbox: only asks once per page */
+/* aide save checkbox */
 $('aideSaveToday')?.addEventListener('change',e=>{
   const cb=e.target;
   if(cb.checked){
