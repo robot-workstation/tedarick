@@ -115,8 +115,8 @@ export function createRenderer({ui}={}){
         const hasMatch = !!r?._m;
         const txt = (v??'').toString().trim();
         if(!hasMatch || !txt){
-          // ✅ uyarı rengi: tema uyumlu ama net (var(--bad))
-          return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm" style="color:var(--bad);font-weight:1200">Eşleştir veya Stok Aç</span></td>`;
+          // ✅ uyarı: hafif açık gri halo (tema içinde kaybolmasın)
+          return `<td class="left nameCell" title="Eşleştir veya Stok Aç"><span class="nm" style="color:var(--bad);font-weight:1200;text-shadow:0 0 6px rgba(220,220,220,.22)">Eşleştir veya Stok Aç</span></td>`;
         }
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
       }
@@ -150,7 +150,7 @@ export function createRenderer({ui}={}){
         const aNm=r["Aide Ürün Adı"]??r["Depo Ürün Adı"]??'',aPulse=!!r._pulseD;
 
         const cNum=stockToNumber(r._cstokraw??'',{source:'compel'});
-        // ✅ İSTENEN: stok varsa (Stok: 1) yerine (Stok Var)
+        // ✅ stok varsa (Stok: 1) yerine (Stok Var)
         const cTag=cNm?(cNum<=0?'(Stok Yok)':'(Stok Var)'):'';
 
         const tAct=r._taktif,tStock=Number(r._tstok??0);
