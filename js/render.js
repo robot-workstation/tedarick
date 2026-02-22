@@ -112,13 +112,32 @@ export function createRenderer({ui}={}){
       return `<th class="${cls}" title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`
     }).join('');
 
+    // ✅ Sıralama:
+    // 1) eşleşenler
+    // 2) eşleşmeyen + Compel stok VAR
+    // 3) eşleşmeyen + Compel stok YOK
+    // Her grup içinde alfabetik: Marka > Compel Ürün Adı > Compel Ürün Kodu > T-Soft Ürün Adı
+    const normS=s=>String(s??'').trim();
+    const cmpTR=(a,b)=>normS(a).localeCompare(normS(b),'tr',{sensitivity:'base'});
+    const grpOf=row=>{
+      const m=!!row?._m;
+      if(m) return 0;
+      const cstk=String(row?.["Stok (Compel)"]||'');
+      return cstk==='Stokta Var'?1:2;
+    };
     const Rview=(R||[])
       .map((row,idx)=>({row,idx}))
-      .sort((a,b)=>{
-        const aBad=String(a.row?.["Stok (Compel)"]||'')==='Stokta Yok';
-        const bBad=String(b.row?.["Stok (Compel)"]||'')==='Stokta Yok';
-        if(aBad!==bBad)return aBad?1:-1;
-        return a.idx-b.idx;
+      .sort((A,B)=>{
+        const a=A.row,b=B.row;
+        const ga=grpOf(a),gb=grpOf(b);
+        if(ga!==gb) return ga-gb;
+
+        const ab=cmpTR(a?.["Marka"],b?.["Marka"]); if(ab) return ab;
+        const an=cmpTR(a?.["Ürün Adı (Compel)"],b?.["Ürün Adı (Compel)"]); if(an) return an;
+        const ac=cmpTR(a?.["Ürün Kodu (Compel)"],b?.["Ürün Kodu (Compel)"]); if(ac) return ac;
+        const tn=cmpTR(a?.["Ürün Adı (T-Soft)"],b?.["Ürün Adı (T-Soft)"]); if(tn) return tn;
+
+        return A.idx-B.idx; // stabil
       })
       .map(x=>x.row);
 
@@ -136,7 +155,7 @@ export function createRenderer({ui}={}){
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
       }
 
-      // ✅ İSTEK: Üst listedeki Aide hücresi, eşleşmeyende boş görünsün
+      // ✅ Üst listedeki Aide hücresi, eşleşmeyende boş görünsün
       if(c==="Stok (Depo)" && !r?._m){
         return `<td class="${T1_SEP_LEFT.has(c)?'sepL':''}" title=""></td>`;
       }
