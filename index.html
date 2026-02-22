@@ -31,8 +31,11 @@
 
   --ok:#86efac;
 
-  /* ✅ uyarı rengi: tema uyumlu ama kaybolmaz */
+  /* genel "bad" rengi (chip vb.) */
   --bad:#ff4d79;
+
+  /* ✅ İSTENEN: uyarı yazı rengi (Eşleştir veya Stok Aç / Hatalı / Eşleşmedi) */
+  --warn:#ff3064;
 
   --unk:#fcd34d;
 
@@ -164,8 +167,8 @@ td.eanCell{overflow:visible;text-overflow:clip}
 td.seqCell{font-weight:1100}
 td.statusBold{font-weight:1100}
 
-/* ✅ uyarılar: pembe temada kaybolmasın diye hafif açık gri halo (biraz daha belirgin) */
-td.flagBad{color:var(--bad)!important;font-weight:1200!important}
+/* ✅ uyarılar (Hatalı / Eşleşmedi) */
+td.flagBad{color:var(--warn)!important;font-weight:1200!important}
 td.flagBad .cellTxt,
 td.flagBad .nm{
   text-shadow:
@@ -336,7 +339,14 @@ a:hover{text-decoration:underline}
 </label>
 
 </div><div class="tsoftRight" aria-label="Yardım görseli">
-<button class="tsoftThumb" id="tsoftThumb" type="button" title="Büyüt"><img id="tsoftThumbImg" src="https://www.sescibaba.com/Data/EditorFiles/urun_resim/Ekran-Resmi-2026-02-19-212136.png" alt="T-Soft dışa aktar ekran görüntüsü" loading="lazy"></button>
+<button class="tsoftThumb" id="tsoftThumb" type="button" title="Büyüt">
+  <img
+    id="tsoftThumbImg"
+    src="https://robot-workstation.github.io/tedarick/media/t-soft_destek.webp"
+    alt="T-Soft destek görseli"
+    loading="lazy"
+  >
+</button>
 </div></div></div></div></div>
 
 <!-- ✅ AIDE MODAL -->
