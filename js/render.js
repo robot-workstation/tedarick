@@ -40,8 +40,6 @@ th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
      0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
 }
 th.tightCol,td.tightCol{padding-left:4px!important;padding-right:4px!important}
-
-/* ✅ EAN hücreleri: tek satır + kısaltma yok (… yok) */
 td.eanCell{white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
 td.eanCell .cellTxt{white-space:nowrap!important}
 `;
@@ -101,11 +99,7 @@ export function createRenderer({ui}={}){
   return{render(R,Ux,depotReady){
     const T1_SEP_LEFT=new Set(["Ürün Kodu (Compel)","Ürün Kodu (T-Soft)","Stok (Compel)","EAN (Compel)"]);
     const tight=c=>(c==="Ürün Kodu (Compel)"||c==="Ürün Kodu (T-Soft)");
-
-    // ✅ dar olsun (EAN hariç; EAN tam görünsün diye pay veriyoruz)
     const NARROW_ONLY=new Set(["Sıra No","Marka","Ürün Kodu (Compel)","Ürün Kodu (T-Soft)"]);
-
-    // 11 kolon (stok durumu yok) — EAN’lara genişlik verdik
     const W1=[3,5,6,22,6,22,7,7,7,7,8];
 
     const head=COLS.map(c=>{
@@ -142,13 +136,15 @@ export function createRenderer({ui}={}){
         return `<td class="left nameCell">${cellName(txt,r._seo||'')}</td>`;
       }
 
+      // ✅ İSTEK: Üst listedeki Aide hücresi, eşleşmeyende boş görünsün
+      if(c==="Stok (Depo)" && !r?._m){
+        return `<td class="${T1_SEP_LEFT.has(c)?'sepL':''}" title=""></td>`;
+      }
+
       const seq=idx===0;
       const ean=(c==="EAN (Compel)"||c==="EAN (T-Soft)");
       const eanBad=(c==="EAN (T-Soft)"&&r?._m&&r?._eanBad===true);
-
-      // ✅ Stok Durumu görevi "Stok (T-Soft)" hücresine taşındı
       const stokBad=(c==="Stok (T-Soft)"&&r?._m&&r?._stokBad===true);
-
       const bad=eanBad||stokBad;
 
       const cls=[
