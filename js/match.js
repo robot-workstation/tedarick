@@ -3,8 +3,8 @@ const $=id=>document.getElementById(id);
 
 export const COLS=[
   "Sıra No","Marka",
-  "Ürün Adı (Compel)","Ürün Adı (T-Soft)",
-  "Ürün Kodu (Compel)","Ürün Kodu (T-Soft)",
+  "Ürün Kodu (Compel)","Ürün Adı (Compel)",
+  "Ürün Kodu (T-Soft)","Ürün Adı (T-Soft)",
   "Stok (Compel)","Stok (Depo)","Stok (T-Soft)","Stok Durumu",
   "EAN (Compel)","EAN (T-Soft)"
 ];
@@ -125,23 +125,13 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
     return b===exp?'Doğru':'Hatalı'
   };
 
-  // ✅ artık "EAN Durumu" kolonu yok; sadece boolean tutuyoruz
   const eanMatch=(aRaw,bRaw2,ok)=>{
     if(!ok)return null;
-
     const a=new Set();
-    for(const x of eans(aRaw||'')){
-      a.add(x);
-      const alt=eanAlt1(x);
-      alt&&a.add(alt);
-    }
+    for(const x of eans(aRaw||'')){a.add(x);const alt=eanAlt1(x);alt&&a.add(alt)}
     const b=eans(bRaw2||'');
     if(!a.size||!b.length)return false;
-
-    for(const x of b){
-      if(a.has(x))return true;
-      if(a.has('0'+x))return true;
-    }
+    for(const x of b){if(a.has(x)||a.has('0'+x))return true}
     return false
   };
 
@@ -151,13 +141,14 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
     const seoAbs=r2?safeUrl(normSeo(r2[C2.seo]||'')):'',clink=safeUrl(r1[C1.link]||'');
     const depAgg=getDepotAgg?.();
     const d=(r2&&depAgg)?depAgg(sup):{num:0,raw:''};
-
     const em=eanMatch(r1[C1.ean]||'',bark,!!r2);
 
     return{
       "Sıra No":T(r1[C1.siraNo]||''),"Marka":T(r1[C1.marka]||''),
-      "Ürün Adı (Compel)":T(r1[C1.urunAdi]||''),"Ürün Adı (T-Soft)":r2?T(r2[C2.urunAdi]||''):'',
-      "Ürün Kodu (Compel)":T(r1[C1.urunKodu]||''),"Ürün Kodu (T-Soft)":sup,
+      "Ürün Adı (Compel)":T(r1[C1.urunAdi]||''),
+      "Ürün Adı (T-Soft)":r2?T(r2[C2.urunAdi]||''):'',
+      "Ürün Kodu (Compel)":T(r1[C1.urunKodu]||''),
+      "Ürün Kodu (T-Soft)":sup,
       "Stok (Compel)":compelLbl(s1raw),
       "Stok (Depo)":r2?depoLbl(d.num):(isDepotReady?.()?'Stokta Yok':'—'),
       "Stok (T-Soft)":tsoftLbl(s2raw,!!r2),
@@ -165,8 +156,7 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
       "EAN (Compel)":T(r1[C1.ean]||''),"EAN (T-Soft)":bark,
       _s1raw:s1raw,_s2raw:s2raw,_dnum:d.num,_draw:d.raw,
       _m:!!r2,_how:r2?how:'',_k:kNew(r1),_bn:B(r1[C1.marka]||''),_seo:seoAbs,_clink:clink,
-      _eanMatch:em, // true/false/null
-      _eanBad:(em===false) // sadece eşleşmedi için
+      _eanMatch:em,_eanBad:(em===false)
     }
   };
 
