@@ -49,8 +49,6 @@ let DAILY_META=null;
  * ✅ Seçimler artık boolean değil, DATE (ymd) tutuyor.
  * - '' => seçili değil
  * - 'YYYY-MM-DD' => seçili (şu tarihin verisi)
- *
- * İstenen: butonlar "dünün tarihi"ni gösterir ve o tarihe set eder.
  */
 let DAILY_SELECTED={tsoft:'',aide:''};
 
@@ -111,39 +109,61 @@ const applySupplierUi=()=>{
   updateGuideUI()
 };
 
-/* ✅ daily UI helpers (YESTERDAY buttons in place of Today buttons) */
+/* ✅ daily UI helpers */
+function pickMetaTime(){
+  // API farklı şekillerde dönebilir; olabildiğince esnek alıyoruz.
+  const t=DAILY_META?.today||DAILY_META?.Today||null;
+  if(!t) return '';
+  const hm = String(t.hm||t.HM||t.time||t.saat||t.hour||'').trim();
+  if(hm) return hm;
+
+  // Eğer ISO gibi bir şey geldiyse, HH:MM çekmeyi dene
+  const iso = String(t.iso||t.ISO||t.createdAt||t.updatedAt||'').trim();
+  const m = iso.match(/T(\d{2}:\d{2})/);
+  return m ? m[1] : '';
+}
+
+/* ✅ BUTON METİNLERİ: 
+   - "burada tarih" Tarihli Veri
+   - Bugün "burada saat" Tarihli Veri
+*/
 function paintDailyUI(){
   const tBtn=$('tsoftDailyBtn'),aBtn=$('aideDailyBtn');
   const tPrev=$('tsoftPrev'),aPrev=$('aidePrev');
 
-  // İSTENEN: butonlar dünün tarihini yazsın ve dünün verisini seçsin
   const yYmd=String(DAILY_META?.yesterday?.ymd||'').trim();
   const yDmy=String(DAILY_META?.yesterday?.dmy||'').trim();
+
+  const todayHm = pickMetaTime(); // "09:34" gibi
 
   const tExists=!!DAILY_META?.yesterday?.tsoft?.exists;
   const aExists=!!DAILY_META?.yesterday?.aide?.exists;
 
-  // buton label sadece tarih olacak
-  const tLabel=(tExists && yDmy)?yDmy:'—';
-  const aLabel=(aExists && yDmy)?yDmy:'—';
+  const dateLabel = (yDmy ? `${yDmy} Tarihli Veri` : '—');
+  const timeLabel = (todayHm ? `Bugün ${todayHm} Tarihli Veri` : '—');
 
+  // Seçili mi? (şu an seçilen tarih: yesterday.ymd)
   const tSel = !!(DAILY_SELECTED.tsoft && DAILY_SELECTED.tsoft===yYmd);
   const aSel = !!(DAILY_SELECTED.aide && DAILY_SELECTED.aide===yYmd);
 
+  // T-Soft: tarihli veri etiketi
   if(tBtn){
     tBtn.disabled=!tExists;
-    tBtn.title=tExists?`Dün: ${tLabel}`:'Dün —';
-    tBtn.textContent=tSel?'Seçildi':tLabel;
+    tBtn.title=tExists?dateLabel:'—';
+    tBtn.textContent=tSel?'Seçildi':dateLabel;
     setBtnSel(tBtn,tSel);
   }
+
+  // Aide: saatli veri etiketi (Bugün HH:MM Tarihli Veri)
+  // Not: Aide’nin de yesterday var/yok bilgisi meta’dan geliyor; buton enable/disable aynı kalır.
   if(aBtn){
     aBtn.disabled=!aExists;
-    aBtn.title=aExists?`Dün: ${aLabel}`:'Dün —';
-    aBtn.textContent=aSel?'Seçildi':aLabel;
+    aBtn.title=aExists?timeLabel:'—';
+    aBtn.textContent=aSel?'Seçildi':timeLabel;
     setBtnSel(aBtn,aSel);
   }
 
-  // Eski küçük "dün" pillleri artık gereksiz; gizle
+  // Eski küçük pilller gizli
   if(tPrev){tPrev.style.display='none';tPrev.textContent='';tPrev.title=''}
   if(aPrev){aPrev.style.display='none';aPrev.textContent='';aPrev.title=''}
 }
@@ -190,7 +210,7 @@ function toggleDaily(kind){
 /* ✅ one-time save creds (admin + read pass) */
 function ensureSaveCredOrCancel(){
   if(DAILY_SAVE_CRED?.adminPassword && DAILY_SAVE_CRED?.readPassword) return true;
-  const admin=prompt('Yetkili Şifre:'); // ✅ değişti
+  const admin=prompt('Yetkili Şifre:');
   if(!admin) return false;
   const read=prompt('Bugün için okuma şifresi:');
   if(!read?.trim()) return false;
@@ -305,7 +325,7 @@ async function initBrands(){
   }finally{renderBrands();applySupplierUi()}
 }
 
-/* ✅ daily buttons in modals (still same ids) */
+/* ✅ daily buttons in modals */
 $('tsoftDailyBtn')?.addEventListener('click',e=>{e.preventDefault();toggleDaily('tsoft')});
 $('aideDailyBtn')?.addEventListener('click',e=>{e.preventDefault();toggleDaily('aide')});
 
@@ -502,7 +522,6 @@ async function generate(){
 
     let t2txt='';
     if(needDaily){
-      // Seçilen tarih = düne set ediliyor (ikisi de aynı ymd olmalı)
       const ymdSel = String(DAILY_SELECTED.tsoft || DAILY_SELECTED.aide || '').trim();
       if(!ymdSel) throw new Error('Seçilen tarih bulunamadı.');
 
@@ -514,7 +533,6 @@ async function generate(){
       setStatus('Seçilen gün verisi alınıyor…','unk');
       const got=await dailyGet(API_BASE,{date:ymdSel,password:pass,want});
 
-      // ✅ cache read pass only after successful fetch
       DAILY_READ_CACHE={date:ymdSel,pass};
 
       if(DAILY_SELECTED.tsoft){
