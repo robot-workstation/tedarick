@@ -40,8 +40,10 @@ th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
      0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
 }
 th.tightCol,td.tightCol{padding-left:4px!important;padding-right:4px!important}
-td.scrollCell{overflow-x:auto!important;overflow-y:hidden!important;text-overflow:clip!important}
-td.scrollCell .cellTxt{display:inline-block;white-space:nowrap}
+
+/* ✅ EAN hücreleri: tek satır + kısaltma yok (… yok) */
+td.eanCell{white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
+td.eanCell .cellTxt{white-space:nowrap!important}
 `;
   document.head.appendChild(st)
 }
@@ -99,17 +101,19 @@ export function createRenderer({ui}={}){
   return{render(R,Ux,depotReady){
     const T1_SEP_LEFT=new Set(["Ürün Kodu (Compel)","Ürün Kodu (T-Soft)","Stok (Compel)","EAN (Compel)"]);
     const tight=c=>(c==="Ürün Kodu (Compel)"||c==="Ürün Kodu (T-Soft)");
-    const NARROW_SCROLL=new Set(["Sıra No","Marka","Ürün Kodu (Compel)","Ürün Kodu (T-Soft)","EAN (Compel)","EAN (T-Soft)"]);
 
-    // 11 kolon (stok durumu kalktı) toplam 100
-    const W1=[3,6,6,23,6,23,7,7,7,6,6];
+    // ✅ dar olsun (EAN hariç; EAN tam görünsün diye pay veriyoruz)
+    const NARROW_ONLY=new Set(["Sıra No","Marka","Ürün Kodu (Compel)","Ürün Kodu (T-Soft)"]);
+
+    // 11 kolon (stok durumu yok) — EAN’lara genişlik verdik
+    const W1=[3,5,6,22,6,22,7,7,7,7,8];
 
     const head=COLS.map(c=>{
       const l=disp(c);
       const cls=[
         T1_SEP_LEFT.has(c)?'sepL':'',
         tight(c)?'hdrThin hdrTight':'',
-        NARROW_SCROLL.has(c)?'tightCol':''
+        NARROW_ONLY.has(c)?'tightCol':''
       ].filter(Boolean).join(' ');
       return `<th class="${cls}" title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`
     }).join('');
@@ -144,6 +148,7 @@ export function createRenderer({ui}={}){
 
       // ✅ Stok Durumu görevi "Stok (T-Soft)" hücresine taşındı
       const stokBad=(c==="Stok (T-Soft)"&&r?._m&&r?._stokBad===true);
+
       const bad=eanBad||stokBad;
 
       const cls=[
@@ -151,7 +156,7 @@ export function createRenderer({ui}={}){
         seq?'seqCell':'',
         ean?'eanCell':'',
         bad?'flagBad':'',
-        NARROW_SCROLL.has(c)?'tightCol scrollCell':''
+        NARROW_ONLY.has(c)?'tightCol':''
       ].filter(Boolean).join(' ');
 
       const title=(c==="Stok (Depo)"&&depotReady)?`${v} (Depo Toplam: ${r._draw??'0'})`:v;
