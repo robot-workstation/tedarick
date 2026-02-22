@@ -39,6 +39,11 @@ th.hdrTight .hTxt{letter-spacing:-.02em;font-size:12px}
      0 0 2px var(--warn-halo-2, rgba(245,245,245,.20)),
      0 0 10px var(--warn-halo-1, rgba(245,245,245,.38));
 }
+
+/* ✅ dar kolonlar: padding kıs + metni KESME/ALT SATIR YAPMA, sığmazsa yatay scroll */
+th.tightCol,td.tightCol{padding-left:4px!important;padding-right:4px!important}
+td.scrollCell{overflow-x:auto!important;overflow-y:hidden!important;text-overflow:clip!important}
+td.scrollCell .cellTxt{display:inline-block;white-space:nowrap}
 `;
   document.head.appendChild(st)
 }
@@ -96,11 +101,20 @@ export function createRenderer({ui}={}){
   return{render(R,Ux,depotReady){
     const T1_SEP_LEFT=new Set(["Stok (Compel)","EAN (Compel)"]);
     const tight=c=>(c==="Ürün Kodu (Compel)"||c==="Ürün Kodu (T-Soft)");
-    const W1=[4,8,8,18,8,18,6,6,6,6,10,10];
+
+    // ✅ çok dar olsun istenen kolonlar
+    const NARROW_SCROLL=new Set(["Sıra No","Marka","Ürün Kodu (Compel)","Ürün Kodu (T-Soft)","EAN (Compel)","EAN (T-Soft)"]);
+
+    // 12 kolon: Sıra, Marka, Kodu, Adı, Kodu, Adı, Stok, Aide, Stok, Durum, EAN, EAN  (toplam 100)
+    const W1=[3,6,6,21,6,21,6,6,6,6,6,7];
 
     const head=COLS.map(c=>{
       const l=disp(c);
-      const cls=[T1_SEP_LEFT.has(c)?'sepL':'',tight(c)?'hdrThin hdrTight':''].filter(Boolean).join(' ');
+      const cls=[
+        T1_SEP_LEFT.has(c)?'sepL':'',
+        tight(c)?'hdrThin hdrTight':'',
+        NARROW_SCROLL.has(c)?'tightCol':''
+      ].filter(Boolean).join(' ');
       return `<th class="${cls}" title="${esc(l)}"><span class="hTxt">${fmtHdr(l)}</span></th>`
     }).join('');
 
@@ -116,8 +130,7 @@ export function createRenderer({ui}={}){
 
     const body=(Rview||[]).map((r,rowIdx)=>`<tr>${COLS.map((c,idx)=>{
       let v=r[c]??'';
-
-      if(c==="Sıra No") v=String(rowIdx+1); // ✅ ekranda 1-2-3... düzgün artsın
+      if(c==="Sıra No") v=String(rowIdx+1);
 
       if(c==="Ürün Adı (Compel)")return `<td class="left nameCell">${cellName(v,r._clink||'')}</td>`;
 
@@ -134,7 +147,15 @@ export function createRenderer({ui}={}){
       const eanBad=(c==="EAN (T-Soft)"&&r?._m&&r?._eanBad===true);
       const bad=(sd&&String(v||'')==='Hatalı')||eanBad;
 
-      const cls=[T1_SEP_LEFT.has(c)?'sepL':'',seq?'seqCell':'',sd?'statusBold':'',ean?'eanCell':'',bad?'flagBad':''].filter(Boolean).join(' ');
+      const cls=[
+        T1_SEP_LEFT.has(c)?'sepL':'',
+        seq?'seqCell':'',
+        sd?'statusBold':'',
+        ean?'eanCell':'',
+        bad?'flagBad':'',
+        NARROW_SCROLL.has(c)?'tightCol scrollCell':''
+      ].filter(Boolean).join(' ');
+
       const title=(c==="Stok (Depo)"&&depotReady)?`${v} (Depo Toplam: ${r._draw??'0'})`:v;
       return `<td class="${cls}" title="${esc(title)}"><span class="cellTxt">${esc(v)}</span></td>`
     }).join('')}</tr>`).join('');
