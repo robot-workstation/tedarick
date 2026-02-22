@@ -125,12 +125,20 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
     return b===exp?false:true
   };
 
+  // ✅ kural: Compel EAN yoksa T-Soft EAN kırmızı olmasın
+  // return: true(=eşleşti) / false(=eşleşmedi) / null(=compel ean yok -> işaretleme yok)
   const eanMatch=(aRaw,bRaw2,ok)=>{
     if(!ok)return null;
+
+    const aList=eans(aRaw||'');
+    if(!aList.length) return null; // Compel EAN yok -> uyarı yok
+
     const a=new Set();
-    for(const x of eans(aRaw||'')){a.add(x);const alt=eanAlt1(x);alt&&a.add(alt)}
+    for(const x of aList){a.add(x);const alt=eanAlt1(x);alt&&a.add(alt)}
+
     const b=eans(bRaw2||'');
-    if(!a.size||!b.length)return false;
+    if(!b.length) return false;
+
     for(const x of b){if(a.has(x)||a.has('0'+x))return true}
     return false
   };
@@ -141,6 +149,7 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
     const seoAbs=r2?safeUrl(normSeo(r2[C2.seo]||'')):'',clink=safeUrl(r1[C1.link]||'');
     const depAgg=getDepotAgg?.();
     const d=(r2&&depAgg)?depAgg(sup):{num:0,raw:''};
+
     const em=eanMatch(r1[C1.ean]||'',bark,!!r2);
     const stokBad=stokDurFlag(s1raw,s2raw,d.num,!!r2);
 
@@ -154,9 +163,12 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
       "Stok (Depo)":r2?depoLbl(d.num):(isDepotReady?.()?'Stokta Yok':'—'),
       "Stok (T-Soft)":tsoftLbl(s2raw,!!r2),
       "EAN (Compel)":T(r1[C1.ean]||''),"EAN (T-Soft)":bark,
+
       _s1raw:s1raw,_s2raw:s2raw,_dnum:d.num,_draw:d.raw,
       _m:!!r2,_how:r2?how:'',_k:kNew(r1),_bn:B(r1[C1.marka]||''),_seo:seoAbs,_clink:clink,
-      _eanMatch:em,_eanBad:(em===false),
+
+      _eanMatch:em,
+      _eanBad:(em===false),     // ✅ sadece em===false iken (compel ean varsa)
       _stokBad:(stokBad===true)
     }
   };
