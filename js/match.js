@@ -5,7 +5,7 @@ export const COLS=[
   "Sıra No","Marka",
   "Ürün Kodu (Compel)","Ürün Adı (Compel)",
   "Ürün Kodu (T-Soft)","Ürün Adı (T-Soft)",
-  "Stok (Compel)","Stok (Depo)","Stok (T-Soft)","Stok Durumu",
+  "Stok (Compel)","Stok (Depo)","Stok (T-Soft)",
   "EAN (Compel)","EAN (T-Soft)"
 ];
 
@@ -118,11 +118,11 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
   const tsoftLbl=(raw,ok)=>ok?(inStock(raw,{source:'products'})?'Stokta Var':'Stokta Yok'):'';
   const depoLbl=dNum=>!isDepotReady?.()?'—':(dNum>0?'Stokta Var':'Stokta Yok');
 
-  const stokDur=(compelRaw,tsoftRaw,dNum,ok)=>{
-    if(!ok)return '—';
+  const stokDurFlag=(compelRaw,tsoftRaw,dNum,ok)=>{
+    if(!ok)return null;
     const a=inStock(compelRaw,{source:'compel'}),b=inStock(tsoftRaw,{source:'products'});
     const exp=isDepotReady?.()?(a||(dNum>0)):a;
-    return b===exp?'Doğru':'Hatalı'
+    return b===exp?false:true
   };
 
   const eanMatch=(aRaw,bRaw2,ok)=>{
@@ -142,6 +142,7 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
     const depAgg=getDepotAgg?.();
     const d=(r2&&depAgg)?depAgg(sup):{num:0,raw:''};
     const em=eanMatch(r1[C1.ean]||'',bark,!!r2);
+    const stokBad=stokDurFlag(s1raw,s2raw,d.num,!!r2);
 
     return{
       "Sıra No":T(r1[C1.siraNo]||''),"Marka":T(r1[C1.marka]||''),
@@ -152,11 +153,11 @@ export function createMatcher({getDepotAgg,isDepotReady}={}){
       "Stok (Compel)":compelLbl(s1raw),
       "Stok (Depo)":r2?depoLbl(d.num):(isDepotReady?.()?'Stokta Yok':'—'),
       "Stok (T-Soft)":tsoftLbl(s2raw,!!r2),
-      "Stok Durumu":stokDur(s1raw,s2raw,d.num,!!r2),
       "EAN (Compel)":T(r1[C1.ean]||''),"EAN (T-Soft)":bark,
       _s1raw:s1raw,_s2raw:s2raw,_dnum:d.num,_draw:d.raw,
       _m:!!r2,_how:r2?how:'',_k:kNew(r1),_bn:B(r1[C1.marka]||''),_seo:seoAbs,_clink:clink,
-      _eanMatch:em,_eanBad:(em===false)
+      _eanMatch:em,_eanBad:(em===false),
+      _stokBad:(stokBad===true)
     }
   };
 
